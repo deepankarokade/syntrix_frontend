@@ -49,3 +49,5 @@ app.*.map.json
 firebase-credentials.json
 google-services.json
 GoogleService-Info.plist
+
+*.env

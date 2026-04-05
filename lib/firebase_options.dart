@@ -10,10 +10,6 @@ class DefaultFirebaseOptions {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
-      case TargetPlatform.iOS:
-        return ios;
-      case TargetPlatform.macOS:
-        return macos;
       case TargetPlatform.windows:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for windows - '
@@ -32,40 +28,23 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBxxx', // Replace with your web API key
-    appId: '1:xxxxx:web:xxxxx',
-    messagingSenderId: 'xxxxx',
+    apiKey: 'AIzaSyC8CumJU3bNjxXeVgYGup0jgEZlt5_Uj18',
+    appId: '1:1082037001747:web:4f8dcac0df9ac87c79a9e6',
+    messagingSenderId: '1082037001747',
     projectId: 'syntrix-430f9',
     authDomain: 'syntrix-430f9.firebaseapp.com',
-    storageBucket: 'syntrix-430f9.appspot.com',
+    storageBucket: 'syntrix-430f9.firebasestorage.app',
+    measurementId: 'G-9651VCW2BC',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBxxx', // Replace with your Android API key
-    appId: '1:xxxxx:android:xxxxx',
-    messagingSenderId: 'xxxxx',
+    apiKey:
+        'AIzaSyBsDgDb41CHJ2s5HvwNQ-nl6Eb31RQGEnU', // Use same as web for now
+    appId:
+        '1:1082037001747:android:83fec15d886e9d3f79a9e6', // Get from Firebase Console if testing on Android
+    messagingSenderId: '1082037001747',
     projectId: 'syntrix-430f9',
     authDomain: 'syntrix-430f9.firebaseapp.com',
-    storageBucket: 'syntrix-430f9.appspot.com',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBxxx', // Replace with your iOS API key
-    appId: '1:xxxxx:ios:xxxxx',
-    messagingSenderId: 'xxxxx',
-    projectId: 'syntrix-430f9',
-    authDomain: 'syntrix-430f9.firebaseapp.com',
-    storageBucket: 'syntrix-430f9.appspot.com',
-    iosBundleId: 'com.example.syntrix',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBxxx', // Replace with your macOS API key
-    appId: '1:xxxxx:macos:xxxxx',
-    messagingSenderId: 'xxxxx',
-    projectId: 'syntrix-430f9',
-    authDomain: 'syntrix-430f9.firebaseapp.com',
-    storageBucket: 'syntrix-430f9.appspot.com',
-    iosBundleId: 'com.example.syntrix',
+    storageBucket: 'syntrix-430f9.firebasestorage.app',
   );
 }
