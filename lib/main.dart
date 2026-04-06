@@ -6,6 +6,10 @@ import 'screens/welcome_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Persistence is enabled by default, which is great for slow internet.
+  // It allows the app to respond instantly while syncing in the background.
+
   runApp(const MyApp());
 }
 

@@ -61,6 +61,7 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
 
       final Map<String, dynamic> data = {
         'lifeStage': _selectedCondition,
+        'onboardingCompleted': true,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -68,11 +69,15 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
         data['trimester'] = _selectedTrimester;
       }
 
-      final email = user.email ?? '';
-      await FirebaseFirestore.instance
+      print('Saving condition for UID: ${user.uid} (Background)');
+      
+      // Trigger background update
+      FirebaseFirestore.instance
           .collection('users')
-          .doc(email)
-          .set(data, SetOptions(merge: true));
+          .doc(user.uid)
+          .set(data, SetOptions(merge: true))
+          .then((_) => print('Condition: Background save finished'))
+          .catchError((e) => print('Condition: Background error: $e'));
 
       if (mounted) {
         Navigator.pushReplacement(

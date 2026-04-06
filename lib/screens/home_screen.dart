@@ -43,15 +43,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _userName = (user.displayName ?? '').split(' ').first;
       if (_userName.isEmpty) _userName = 'User';
 
-      final email = user.email ?? '';
-      print('Home: Fetching doc for email: $email');
+      print('Home: Fetching doc for UID: ${user.uid}');
 
-      // Add a timeout to Firestore get just in case
+      // Fetch the user document using the UID
       final doc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(email)
-          .get()
-          .timeout(const Duration(seconds: 5));
+          .doc(user.uid)
+          .get();
 
       if (doc.exists && mounted) {
         final data = doc.data()!;
@@ -65,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _conditionLabel = _conditionTags[stage] ?? 'General Tracking';
         });
       } else {
-        print('Home: Doc does not exist for $email');
+        print('Home: Doc does not exist for ${user.email}');
       }
     } catch (e) {
       print('Home: Error loading user data: $e');

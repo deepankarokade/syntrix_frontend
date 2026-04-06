@@ -136,24 +136,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
       print('Display name updated');
 
       // 2. Save user data to Firestore
-      // Structure: users → {email} → { name }
-      final authEmail = userCredential.user?.email;
-      if (authEmail != null) {
-        print('Signup: Saving to Firestore for email: $authEmail');
+      // Structure: users → {uid} → { name, email, createdAt, onboardingCompleted }
+      final user = userCredential.user;
+      if (user != null) {
+        print('Signup: Saving to Firestore for UID: ${user.uid}');
         try {
-          await FirebaseFirestore.instance
+          // Background sync to avoid blocking the UI on slow internet
+          FirebaseFirestore.instance
               .collection('users')
-              .doc(authEmail)
+              .doc(user.uid)
               .set({
                 'name': _nameController.text.trim(),
-                'email': authEmail,
+                'email': user.email,
+                'createdAt': FieldValue.serverTimestamp(),
+                'onboardingCompleted': false,
               })
-              .timeout(const Duration(seconds: 8));
-          print('Signup: Firestore save successful');
+              .then((_) => print('Signup: Background save for UID finished'))
+              .catchError((e) => print('Signup: Background error: $e'));
+          
+          print('Signup: Firestore save triggered in background');
         } catch (e) {
-          print('Signup: Firestore save error (continuing anyway): $e');
-          // We continue to onboarding even if initial name save fails,
-          // as the user is already authenticated.
+          print('Signup: Initial trigger error: $e');
         }
       }
 
