@@ -279,68 +279,75 @@ class PCOSDashboard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _quickAction(
-              icon: Icons.calendar_month_outlined,
-              label: 'Log Period',
-              color: const Color(0xFFB5616A),
-              bgColor: const Color(0xFFFFECEC),
-              onTap: () async {
-                final index = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CalendarScreen(),
-                  ),
-                );
-                if (index is int) {
-                  onTabChange(index);
-                }
-              },
-            ),
-            _quickAction(
-              icon: Icons.upload_file_outlined,
-              label: 'Upload\nReport',
-              color: const Color(0xFF2E7D6B),
-              bgColor: const Color(0xFFE0F4F0),
-              onTap: () async {
-                final index = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReportsScreen(),
-                  ),
-                );
-                if (index is int) {
-                  onTabChange(index);
-                }
-              },
-            ),
-            _quickAction(
-              icon: Icons.chat_bubble_outline,
-              label: 'AI Chat',
-              color: const Color(0xFF3A6EA8),
-              bgColor: const Color(0xFFE8F0F8),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChatbotScreen()),
-                );
-              },
-            ),
-            _quickAction(
-              icon: Icons.restaurant_menu,
-              label: 'Diet Plan',
-              color: const Color(0xFFD68A3D),
-              bgColor: const Color(0xFFFDF3E9),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DietPlannerScreen()),
-                );
-              },
-            ),
-          ],
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              _quickAction(
+                icon: Icons.calendar_month_outlined,
+                label: 'Log Period',
+                color: const Color(0xFFB5616A),
+                bgColor: const Color(0xFFFFECEC),
+                onTap: () async {
+                  final index = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CalendarScreen(),
+                    ),
+                  );
+                  if (index is int) {
+                    onTabChange(index);
+                  }
+                },
+              ),
+              const SizedBox(width: 20),
+              _quickAction(
+                icon: Icons.upload_file_outlined,
+                label: 'Upload\nReport',
+                color: const Color(0xFF2E7D6B),
+                bgColor: const Color(0xFFE0F4F0),
+                onTap: () async {
+                  final index = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ReportsScreen(),
+                    ),
+                  );
+                  if (index is int) {
+                    onTabChange(index);
+                  }
+                },
+              ),
+              const SizedBox(width: 20),
+              _quickAction(
+                icon: Icons.chat_bubble_outline,
+                label: 'AI Chat',
+                color: const Color(0xFF3A6EA8),
+                bgColor: const Color(0xFFE8F0F8),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+                  );
+                },
+              ),
+              const SizedBox(width: 20),
+              _quickAction(
+                icon: Icons.restaurant_menu,
+                label: 'Diet Plan',
+                color: const Color(0xFFD68A3D),
+                bgColor: const Color(0xFFFDF3E9),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DietPlannerScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
 
         const SizedBox(height: 24),

@@ -47,6 +47,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   String _selectedTime = 'Morning';
   bool _tookMedication = false;
   bool _ateFastFood = false;
+  bool _irregularBleeding = false;
+  bool _spotting = false;
   final TextEditingController _medicationNameCtrl = TextEditingController();
 
   final List<Map<String, String>> _moods = [
@@ -86,9 +88,10 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
       _tookMedication = data['medication'] != null;
       if (_tookMedication) _medicationNameCtrl.text = data['medication'];
 
-      if (data['waist'] != null) _waistCtrl.text = data['waist'].toString();
       if (data['hip'] != null) _hipCtrl.text = data['hip'].toString();
       _ateFastFood = data['ateFastFood'] == true;
+      _irregularBleeding = data['irregularBleeding'] == true;
+      _spotting = data['spotting'] == true;
 
       if (data['symptoms'] != null) {
         _selectedSymptoms.clear();
@@ -184,6 +187,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
         'waist': double.tryParse(_waistCtrl.text) ?? 0.0,
         'hip': double.tryParse(_hipCtrl.text) ?? 0.0,
         'ateFastFood': _ateFastFood,
+        'irregularBleeding': _lifeStage == 'menopause' ? _irregularBleeding : null,
+        'spotting': _lifeStage == 'menopause' ? _spotting : null,
         'medication': _tookMedication ? _medicationNameCtrl.text.trim() : null,
         'periodPhase': _isOnPeriod ? 'Menstrual' : _selectedPhase,
       }, SetOptions(merge: true));
@@ -291,8 +296,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
               ),
               const SizedBox(height: 32),
 
-              // ── [ CYCLE ] (Hidden if Pregnant) ────────────────────
-              if (_lifeStage != 'Pregnancy') ...[
+              // ── [ CYCLE ] (Hidden if Pregnant or Menopause) ─────────
+              if (_lifeStage != 'pregnant' && _lifeStage != 'menopause' && _lifeStage != 'Pregnancy') ...[
                 _sectionHeader('CYCLE'),
                 const SizedBox(height: 16),
                 _labeledContainer(
@@ -387,6 +392,43 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                 const SizedBox(height: 32),
               ],
 
+              // ── [ MENOPAUSE SPECIFIC ] ────────────────────────────
+              if (_lifeStage == 'menopause') ...[
+                _sectionHeader('POST-MENOPAUSE STATUS'),
+                const SizedBox(height: 16),
+                _labeledContainer(
+                  label: 'Bleeding / Spotting Status',
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          _choiceButton(
+                            'Irregular Bleeding',
+                            _irregularBleeding,
+                            () => setState(() => _irregularBleeding = !_irregularBleeding),
+                          ),
+                          const SizedBox(width: 12),
+                          _choiceButton(
+                            'Spotting',
+                            _spotting,
+                            () => setState(() => _spotting = !_spotting),
+                          ),
+                        ],
+                      ),
+                      if (_irregularBleeding || _spotting)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Text(
+                            'Note: Bleeding after menopause should be discussed with a doctor.',
+                            style: TextStyle(color: Color(0xFFB5616A), fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ],
+
               // ── [ SYMPTOMS ] ───────────────────────────────────────
               _sectionHeader('SYMPTOMS'),
               const SizedBox(height: 16),
@@ -403,6 +445,10 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                   'Facial Hair',
                   'Hair Loss',
                   'Skin Darkening',
+                  'Hot Flashes',
+                  'Night Sweats',
+                  'Joint Pain',
+                  'Vaginal Dryness',
                 ].map(_buildSymptomChip).toList(),
               ),
               const SizedBox(height: 32),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import '../../services/ai_service.dart';
 import '../../services/user_session.dart';
+import '../../services/ai_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DietPlannerScreen extends StatefulWidget {
   const DietPlannerScreen({super.key});
@@ -16,7 +18,38 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> {
   String _activityLevel = 'Moderate';
 
   bool _isLoading = false;
+  bool _fetchingProfile = true;
   String? _dietPlanResponse;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() => _fetchingProfile = false);
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        setState(() {
+          if (data['region'] != null) _regionController.text = data['region'];
+          if (data['activityLevel'] != null) _activityLevel = data['activityLevel'];
+          if (data['symptoms'] != null) _symptomsController.text = data['symptoms'];
+        });
+      }
+    } catch (e) {
+      print("Error loading profile for diet: $e");
+    } finally {
+      if (mounted) setState(() => _fetchingProfile = false);
+    }
+  }
 
   Future<void> _generateDietPlan() async {
     final region = _regionController.text.trim();
@@ -46,6 +79,15 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> {
       },
     ];
 
+    // Save preferences for next time
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'region': region,
+        'activityLevel': _activityLevel,
+      }, SetOptions(merge: true));
+    }
+
     final response = await AiService.sendMessage(messages: messages, isDiet: true);
 
     if (mounted) {
@@ -66,7 +108,9 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> {
         elevation: 1,
         iconTheme: const IconThemeData(color: Color(0xFF2E4A6B)),
       ),
-      body: _dietPlanResponse != null ? _buildResultView() : _buildFormView(),
+      body: _fetchingProfile 
+          ? const Center(child: CircularProgressIndicator())
+          : (_dietPlanResponse != null ? _buildResultView() : _buildFormView()),
     );
   }
 
