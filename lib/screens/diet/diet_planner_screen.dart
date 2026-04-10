@@ -100,39 +100,64 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
       _isLoading = true;
     });
 
-    final contextData = await AiService.getGroundingContext();
+    try {
+      print("Diet: Starting generation for condition=$_userCondition, region=$region");
+      final contextData = await AiService.getGroundingContext();
+      print("Diet: Got grounding context (${contextData.length} chars)");
 
-    final messages = [
-      {"role": "system", "content": AiService.dietSystemPrompt},
-      {
-        "role": "user",
-        "content": "Grounded User Data:\n$contextData\n\n"
-                  "Selected Goal/Condition: $_userCondition. "
-                  "Requested Region: $region. "
-                  "Current Symptoms detected from logs: $_userSymptoms. "
-                  "Stricly generate the plan for the SELECTED CONDITION: $_userCondition."
-      },
-    ];
+      final messages = [
+        {"role": "system", "content": AiService.dietSystemPrompt},
+        {
+          "role": "user",
+          "content": "Grounded User Data:\n$contextData\n\n"
+                    "Selected Goal/Condition: $_userCondition. "
+                    "Requested Region: $region. "
+                    "Current Symptoms detected from logs: $_userSymptoms. "
+                    "Strictly generate the plan for the SELECTED CONDITION: $_userCondition."
+        },
+      ];
 
-    final response = await AiService.sendMessage(messages: messages, isDiet: true);
+      print("Diet: Sending request to AI...");
+      final response = await AiService.sendMessage(messages: messages, isDiet: true);
+      print("Diet: Got response: ${response != null ? '${response.length} chars' : 'NULL'}");
 
-    // Save preferences and the plan for next time
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'region': region,
-        'lifeStage': _userCondition, // Persist the condition change
-        'activeDietPlan': response,
-        'dietPlanTimestamp': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    }
+      if (response == null || response.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to generate diet plan. Please try again.'), backgroundColor: Colors.red),
+          );
+        }
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _activePlan = response;
-        _tabController.animateTo(1);
-      });
+      // Save preferences and the plan for next time
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'region': region,
+          'lifeStage': _userCondition,
+          'activeDietPlan': response,
+          'dietPlanTimestamp': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        print("Diet: Saved to Firestore");
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _activePlan = response;
+          _tabController.animateTo(1);
+        });
+      }
+    } catch (e) {
+      print("Diet: ERROR - $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

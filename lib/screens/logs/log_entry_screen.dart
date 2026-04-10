@@ -51,6 +51,13 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   bool _spotting = false;
   final TextEditingController _medicationNameCtrl = TextEditingController();
 
+  // ── Pregnancy-specific fields ──
+  String _nausea = 'None';
+  String _swelling = 'None';
+  bool _tookPrenatalVitamins = false;
+  final TextEditingController _babyKicksCtrl = TextEditingController();
+  final TextEditingController _contractionNotesCtrl = TextEditingController();
+
   final List<Map<String, String>> _moods = [
     {'emoji': '😢', 'label': 'Sad'},
     {'emoji': '😐', 'label': 'Neutral'},
@@ -123,11 +130,26 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
     }
   }
 
+  List<String> _getSymptomsForCondition() {
+    switch (_lifeStage?.toLowerCase()) {
+      case 'pcos':
+        return ['Acne', 'Fatigue', 'Bloating', 'Cramps', 'Mood Swings', 'Headache', 'Facial Hair', 'Hair Loss', 'Skin Darkening', 'Weight Gain', 'Irregular Periods'];
+      case 'pregnant':
+        return ['Nausea', 'Back Pain', 'Fatigue', 'Headache', 'Heartburn', 'Insomnia', 'Mood Swings', 'Leg Cramps', 'Shortness of Breath', 'Dizziness', 'Constipation'];
+      case 'menopause':
+        return ['Hot Flashes', 'Night Sweats', 'Fatigue', 'Joint Pain', 'Vaginal Dryness', 'Mood Swings', 'Insomnia', 'Brain Fog', 'Headache', 'Weight Gain', 'Anxiety'];
+      default:
+        return ['Acne', 'Fatigue', 'Bloating', 'Cramps', 'Mood Swings', 'Headache', 'Hair Loss', 'Hot Flashes', 'Night Sweats', 'Joint Pain'];
+    }
+  }
+
   @override
   void dispose() {
     _weightCtrl.dispose();
     _bloodSugarCtrl.dispose();
     _medicationNameCtrl.dispose();
+    _babyKicksCtrl.dispose();
+    _contractionNotesCtrl.dispose();
     super.dispose();
   }
 
@@ -191,6 +213,13 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
         'spotting': _lifeStage == 'menopause' ? _spotting : null,
         'medication': _tookMedication ? _medicationNameCtrl.text.trim() : null,
         'periodPhase': _isOnPeriod ? 'Menstrual' : _selectedPhase,
+        // Pregnancy-specific fields
+        'nausea': _lifeStage?.toLowerCase() == 'pregnant' ? _nausea : null,
+        'swelling': _lifeStage?.toLowerCase() == 'pregnant' ? _swelling : null,
+        'babyKicks': _lifeStage?.toLowerCase() == 'pregnant' ? (int.tryParse(_babyKicksCtrl.text) ?? 0) : null,
+        'contractionNotes': _lifeStage?.toLowerCase() == 'pregnant' ? _contractionNotesCtrl.text.trim() : null,
+        'prenatalVitamins': _lifeStage?.toLowerCase() == 'pregnant' ? _tookPrenatalVitamins : null,
+        'lifeStageAtLog': _lifeStage,
       }, SetOptions(merge: true));
 
       // ── Update Global Weight ──
@@ -429,27 +458,69 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                 const SizedBox(height: 32),
               ],
 
+              // ── [ PREGNANCY SPECIFIC ] ─────────────────────────────
+              if (_lifeStage?.toLowerCase() == 'pregnant') ...[
+                _sectionHeader('PREGNANCY TRACKING'),
+                const SizedBox(height: 16),
+                _labeledContainer(
+                  label: 'Nausea / Morning Sickness',
+                  child: _segmentSelector(
+                    options: ['None', 'Mild', 'Moderate', 'Severe'],
+                    selected: _nausea,
+                    onSelect: (val) => setState(() => _nausea = val),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _labeledContainer(
+                  label: 'Swelling (Feet/Hands)',
+                  child: _segmentSelector(
+                    options: ['None', 'Mild', 'Moderate', 'Severe'],
+                    selected: _swelling,
+                    onSelect: (val) => setState(() => _swelling = val),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _inputCard(
+                  icon: Icons.child_care_rounded,
+                  label: 'Baby Kicks (approx count)',
+                  controller: _babyKicksCtrl,
+                  suffix: 'kicks',
+                  hint: '0',
+                ),
+                const SizedBox(height: 12),
+                _labeledContainer(
+                  label: 'Prenatal Vitamins Taken?',
+                  child: Row(
+                    children: [
+                      _choiceButton('Yes', _tookPrenatalVitamins, () => setState(() => _tookPrenatalVitamins = true)),
+                      const SizedBox(width: 12),
+                      _choiceButton('No', !_tookPrenatalVitamins, () => setState(() => _tookPrenatalVitamins = false)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _labeledContainer(
+                  label: 'Contraction / Discomfort Notes',
+                  child: TextField(
+                    controller: _contractionNotesCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'Any contractions, pelvic pressure, etc.',
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ],
+
               // ── [ SYMPTOMS ] ───────────────────────────────────────
               _sectionHeader('SYMPTOMS'),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: [
-                  'Acne',
-                  'Fatigue',
-                  'Bloating',
-                  'Cramps',
-                  'Mood Swings',
-                  'Headache',
-                  'Facial Hair',
-                  'Hair Loss',
-                  'Skin Darkening',
-                  'Hot Flashes',
-                  'Night Sweats',
-                  'Joint Pain',
-                  'Vaginal Dryness',
-                ].map(_buildSymptomChip).toList(),
+                children: _getSymptomsForCondition().map(_buildSymptomChip).toList(),
               ),
               const SizedBox(height: 32),
 

@@ -11,6 +11,15 @@ class AiService {
   static const String chatSystemPrompt = """
 You are a HIGH-PRECISION Women's Health AI Assistant.
 
+LANGUAGE RULES (CRITICAL):
+- You MUST detect the language the user is writing in.
+- ALWAYS reply in the SAME language the user uses.
+- You support: English, Hindi, Marathi, Tamil, Telugu, Kannada, Bengali, Gujarati, Malayalam, Punjabi, Urdu, and any other Indian or global language.
+- If the user writes in Marathi (e.g., "PCOS म्हणजे काय?"), respond fully in Marathi.
+- If the user writes in Hindi (e.g., "PCOS kya hai?"), respond fully in Hindi.
+- If the user mixes languages (Hinglish/Marathlish), respond in the same mixed style.
+- Medical terms (like PCOS, TSH, HbA1c) can remain in English even when responding in other languages.
+
 STRICT RULES:
 - NO hallucinations. ONLY respond based on provided user health data and medical facts.
 - If data is missing for a specific date, state "No data recorded for [Date]" instead of assuming.
@@ -21,13 +30,13 @@ STRICT RULES:
 - If needed → explicitly say "Searching medical data..."
 
 DOMAIN:
-PCOS, Thyroid, Insulin Resistance, Diabetes, PMS, Amenorrhea, Obesity, Infertility
+PCOS, Thyroid, Insulin Resistance, Diabetes, PMS, Amenorrhea, Obesity, Infertility, Pregnancy, Menopause
 
 FORMAT:
 - Tables
 - Bullet points
 - Clinical ranges
-- Clear explanation
+- Clear explanation in the user's language
 
 SAFETY:
 - Do NOT give final diagnosis
@@ -73,10 +82,12 @@ OUTPUT FORMAT:
   }) async {
     try {
       final payload = {
-        "model": "google/gemini-2.0-flash-001",
+        "model": isDiet
+            ? "google/gemma-3-27b-it:free"
+            : "google/gemma-3-27b-it:free",
         "messages": messages,
-        "temperature": 0.2,
-        "max_tokens": 800,
+        "temperature": 0.3,
+        "max_tokens": isDiet ? 2000 : 800,
       };
 
       final response = await http.post(
@@ -128,7 +139,11 @@ OUTPUT FORMAT:
       context.writeln("- Age/DOB: ${profile['dob'] ?? 'Not provided'}");
       context.writeln("- Height: ${profile['height'] ?? 'Not provided'} cm");
       context.writeln("- Weight: ${profile['weight'] ?? 'Not provided'} kg");
-      context.writeln("- Conditions: ${profile['condition'] ?? 'None'}");
+      context.writeln("- Life Stage / Condition: ${profile['lifeStage'] ?? 'None'}");
+      if (profile['lifeStage'] == 'pregnant') {
+        context.writeln("- Trimester: ${profile['trimester'] ?? 'Not provided'}");
+        context.writeln("- Pregnancy Week: ${profile['pregnancyWeek'] ?? 'Not provided'}");
+      }
       
       context.writeln("\nRECENT HEALTH LOGS (LAST 7 DAYS):");
       if (last7Days.docs.isEmpty) {
@@ -139,7 +154,9 @@ OUTPUT FORMAT:
           final date = doc.id.split('_').first;
           final time = data['timeOfLog'] ?? 'Unknown';
           context.writeln("Date: $date ($time)");
-          context.writeln("  - Status: ${data['isOnPeriod'] == true ? 'On Period (Day ${data['periodDay']})' : 'Not on period'}");
+          if (data['isOnPeriod'] != null) {
+            context.writeln("  - Status: ${data['isOnPeriod'] == true ? 'On Period (Day ${data['periodDay']})' : 'Not on period'}");
+          }
           context.writeln("  - Phase: ${data['periodPhase'] ?? 'N/A'}");
           context.writeln("  - Symptoms: ${data['symptoms'] ?? 'None'}");
           context.writeln("  - Mood: ${data['mood'] ?? 'General'}");
@@ -148,6 +165,17 @@ OUTPUT FORMAT:
           context.writeln("  - Weight: ${data['weight'] ?? 'Same as profile'}");
           if (data['waist'] != null) context.writeln("  - Waist: ${data['waist']} cm, Hip: ${data['hip']} cm");
           if (data['ateFastFood'] != null) context.writeln("  - Fast Food Consumed: ${data['ateFastFood']}");
+          // Pregnancy-specific log data
+          if (data['nausea'] != null) context.writeln("  - Nausea: ${data['nausea']}");
+          if (data['swelling'] != null) context.writeln("  - Swelling: ${data['swelling']}");
+          if (data['babyKicks'] != null) context.writeln("  - Baby Kicks: ${data['babyKicks']}");
+          if (data['prenatalVitamins'] != null) context.writeln("  - Prenatal Vitamins: ${data['prenatalVitamins']}");
+          if (data['contractionNotes'] != null && data['contractionNotes'].toString().isNotEmpty) {
+            context.writeln("  - Contraction Notes: ${data['contractionNotes']}");
+          }
+          // Menopause-specific log data
+          if (data['irregularBleeding'] == true) context.writeln("  - Irregular Bleeding: Yes");
+          if (data['spotting'] == true) context.writeln("  - Spotting: Yes");
         }
       }
       
