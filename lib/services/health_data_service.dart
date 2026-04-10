@@ -94,12 +94,9 @@ class HealthDataService {
       }
 
       // BMI from weight + height (weight kg / height m²)
-      final weight = _toDouble(userData['weight']) ?? 65.0;
+      final profileWeight = _toDouble(userData['weight']) ?? 65.0;
       final heightCm = _toDouble(userData['height']) ?? 160.0;
       final heightM = heightCm / 100.0;
-      final bmi = weight / (heightM * heightM);
-
-      print('HealthDataService: age=$age, bmi=$bmi');
 
       // ── Step 2: Fetch latest daily log entries ───────────────────────────
       final logsSnap = await _db
@@ -112,11 +109,46 @@ class HealthDataService {
 
       final entries = logsSnap.docs.map((d) => d.data()).toList();
 
+      // Find the most recently logged values across the last 30 days
+      double? recentWaist;
+      double? recentHip;
+      double? recentWeight;
+
+      for (var entry in entries) {
+        if (recentWaist == null && entry['waist'] != null) recentWaist = _toDouble(entry['waist']);
+        if (recentHip == null && entry['hip'] != null) recentHip = _toDouble(entry['hip']);
+        if (recentWeight == null && entry['weight'] != null) recentWeight = _toDouble(entry['weight']);
+      }
+
+      // Find the oldest logged weight in the fetched span
+      double? oldestWeight;
+      for (var entry in entries.reversed) {
+        if (entry['weight'] != null) {
+          oldestWeight = _toDouble(entry['weight']);
+          break;
+        }
+      }
+
+      // Current exact values
+      final currentWeight = recentWeight ?? profileWeight;
+      final bmi = currentWeight / (heightM * heightM);
+
+      print('HealthDataService: age=$age, bmi=$bmi (weight: $currentWeight)');
+
       // Lifestyle flags from most recent entry
       final latestLog = entries.isNotEmpty ? entries.first : <String, dynamic>{};
       final symptoms = latestLog['symptoms'] as Map<String, dynamic>? ?? {};
 
-      final weightGain    = _encodeBool(latestLog['weightGain'] ?? symptoms['Weight Gain']);
+      // Dynamically calculate weight gain (if gained ≥ 1 kg from oldest log)
+      double dynamicWeightGain = 0.0;
+      if (oldestWeight != null && currentWeight > oldestWeight) {
+        if ((currentWeight - oldestWeight) >= 1.0) {
+          dynamicWeightGain = 1.0;
+        }
+      }
+      final manualWeightGain = _encodeBool(latestLog['weightGain'] ?? symptoms['Weight Gain']);
+      final weightGain = (dynamicWeightGain == 1.0) ? 1.0 : manualWeightGain;
+
       final hairGrowth    = _encodeSeverity(symptoms['Hair Growth'] ?? symptoms['Hirsutism']);
       final pimples       = _encodeSeverity(symptoms['Acne'] ?? symptoms['Pimples']);
       final hairLoss      = _encodeSeverity(symptoms['Hair Loss']);
@@ -133,12 +165,10 @@ class HealthDataService {
       // Ensure the model gets the true overall Cycle Length (e.g. 28 days), not just the 5 days of bleeding
       final cycleLengthDays = cycleData.averageCycleLength.toDouble();
 
-      // Waist-to-hip ratio from log (override default if present)
+      // Waist-to-hip ratio from most recent logs (override default if present)
       double whr = _defaultWhr;
-      final waist = _toDouble(latestLog['waist']);
-      final hip   = _toDouble(latestLog['hip']);
-      if (waist != null && hip != null && hip > 0) {
-        whr = waist / hip;
+      if (recentWaist != null && recentHip != null && recentHip > 0) {
+        whr = recentWaist / recentHip;
       }
 
       print('HealthDataService: cycleType=$cycleType, cycleDays=$cycleLengthDays, whr=$whr');
