@@ -82,6 +82,11 @@ class StepTrackerService {
 
     _stepCountController.add(_todaySteps);
     await _saveStepsLocally(_todaySteps);
+    
+    // Save to Firestore every 100 steps to reduce writes
+    if (_todaySteps % 100 == 0) {
+      await saveStepsToFirestore();
+    }
   }
 
   void _onPedestrianStatus(PedestrianStatus event) {
@@ -193,6 +198,43 @@ class StepTrackerService {
       _todaySteps = prefs.getInt('today_steps') ?? 0;
     } else {
       _lastResetDate = today;
+    }
+
+    // Load today's steps from Firestore
+    await _loadStepsFromFirestore();
+  }
+
+  // ✅ Load steps from Firestore on app start
+  Future<void> _loadStepsFromFirestore() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final today = _getTodayDate();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('step_logs')
+          .doc(today)
+          .get()
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () => throw TimeoutException('Query timed out'),
+          );
+
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data['steps'] != null) {
+          _todaySteps = data['steps'] as int;
+          _stepCountController.add(_todaySteps);
+          
+          // Update local storage
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('today_steps', _todaySteps);
+        }
+      }
+    } catch (e) {
+      print('Error loading steps from Firestore: $e');
     }
   }
 
