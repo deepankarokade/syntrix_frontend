@@ -8,11 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'dart:convert';
 import 'log_entry_screen.dart';
-<<<<<<< HEAD
 import '../report/reports_screen.dart';
-=======
 import '../../services/ai_service.dart';
->>>>>>> c17f6bc22157ef04b53aefab6a65c568a69c6146
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -138,13 +135,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
         DateTime? lastStart;
         for (var d in periodDates) {
           if (lastStart == null || d.difference(lastStart).inDays > 10) {
-            startDates.add("\${d.year}-\${d.month.toString().padLeft(2, '0')}-\${d.day.toString().padLeft(2, '0')}");
+            startDates.add(
+              "\${d.year}-\${d.month.toString().padLeft(2, '0')}-\${d.day.toString().padLeft(2, '0')}",
+            );
             lastStart = d;
           }
         }
 
         final now = DateTime.now();
-        String todayStr = "\${now.year}-\${now.month.toString().padLeft(2, '0')}-\${now.day.toString().padLeft(2, '0')}";
+        String todayStr =
+            "\${now.year}-\${now.month.toString().padLeft(2, '0')}-\${now.day.toString().padLeft(2, '0')}";
 
         String aiPrompt = '''
 You are a Medical AI calculating the menstrual cycle.
@@ -159,17 +159,24 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
 ''';
         try {
           final aiResponse = await AiService.sendMessage(
-            messages: [{"role": "user", "content": aiPrompt}],
+            messages: [
+              {"role": "user", "content": aiPrompt},
+            ],
           );
           if (aiResponse != null && mounted) {
-            String cleanJSON = aiResponse.replaceAll('```json', '').replaceAll('```', '').trim();
+            String cleanJSON = aiResponse
+                .replaceAll('```json', '')
+                .replaceAll('```', '')
+                .trim();
             Map<String, dynamic> aiData = jsonDecode(cleanJSON);
-            DateTime aiNextDate = DateTime.parse(aiData['predictedNextPeriodDate']);
+            DateTime aiNextDate = DateTime.parse(
+              aiData['predictedNextPeriodDate'],
+            );
             setState(() {
               _predictedNextPeriodDate = aiNextDate;
             });
           }
-        } catch(e) {
+        } catch (e) {
           print("AI calendar prediction error: \$e");
         }
       }
@@ -201,167 +208,171 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
       body: Stack(
         children: [
           SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_rounded,
-                        color: Color(0xFF1E5BB1),
-                        size: 20,
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const Text(
-                    'Log Period',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E5BB1),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Month Selector ─────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.chevron_left,
-                      color: Color(0xFF1E5BB1),
-                    ),
-                    onPressed: _prevMonth,
-                  ),
-                  Text(
-                    DateFormat('MMMM yyyy').format(_currentMonth),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E5BB1),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.chevron_right,
-                      color: Color(0xFF1E5BB1),
-                    ),
-                    onPressed: _nextMonth,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // ── Calendar Card ──────────────────────────────────────
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(32),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_rounded,
+                            color: Color(0xFF1E5BB1),
+                            size: 20,
                           ),
-                        ],
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       ),
-                      child: _loading
-                          ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(40),
-                                child: CircularProgressIndicator(),
-                              ),
-                            )
-                          : Column(
-                              children: [
-                                _buildDaysOfWeek(),
-                                const SizedBox(height: 20),
-                                _buildCalendarGrid(),
-                                const SizedBox(height: 32),
-                                // Legend
-                                _buildLegend(),
-                              ],
-                            ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // ── Day Details Section ──────────────────────────
-                    _buildDayDetailsHeader(),
-                    const SizedBox(height: 16),
-                    // ── Tab Switcher: Logs | Reports ─────────────────
-                    _buildTabSwitcher(),
-                    const SizedBox(height: 16),
-                    if (_selectedTab == 0)
-                      // LOGS TAB
-                      (_loadingDetails
-                          ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(20),
-                                child: CircularProgressIndicator(),
-                              ),
-                            )
-                          : _dayDetails.isEmpty
-                          ? _buildEmptyState('No logs for this day',
-                              Icons.event_note_rounded)
-                          : Column(
-                              children: _dayDetails.entries
-                                  .map((e) => _buildLogCard(e.key, e.value))
-                                  .toList(),
-                            ))
-                    else
-                      // REPORTS TAB
-                      _buildReportsTab(),
-                    const SizedBox(height: 40),
-                  ],
+                      const Text(
+                        'Log Period',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E5BB1),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ), // SingleChildScrollView
-            ), // Expanded
-          ], // Outer Column children
-        ), // Outer Column
-      ), // SafeArea
-      if (_isDownloading)
-        Container(
-          color: Colors.black.withOpacity(0.3),
-          child: const Center(
-            child: Card(
-              child: Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Opening Report...',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ],
+
+                // ── Month Selector ─────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.chevron_left,
+                          color: Color(0xFF1E5BB1),
+                        ),
+                        onPressed: _prevMonth,
+                      ),
+                      Text(
+                        DateFormat('MMMM yyyy').format(_currentMonth),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E5BB1),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.chevron_right,
+                          color: Color(0xFF1E5BB1),
+                        ),
+                        onPressed: _nextMonth,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Calendar Card ──────────────────────────────────────
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(32),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: _loading
+                              ? const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(40),
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                )
+                              : Column(
+                                  children: [
+                                    _buildDaysOfWeek(),
+                                    const SizedBox(height: 20),
+                                    _buildCalendarGrid(),
+                                    const SizedBox(height: 32),
+                                    // Legend
+                                    _buildLegend(),
+                                  ],
+                                ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // ── Day Details Section ──────────────────────────
+                        _buildDayDetailsHeader(),
+                        const SizedBox(height: 16),
+                        // ── Tab Switcher: Logs | Reports ─────────────────
+                        _buildTabSwitcher(),
+                        const SizedBox(height: 16),
+                        if (_selectedTab == 0)
+                          // LOGS TAB
+                          (_loadingDetails
+                              ? const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(20),
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                )
+                              : _dayDetails.isEmpty
+                              ? _buildEmptyState(
+                                  'No logs for this day',
+                                  Icons.event_note_rounded,
+                                )
+                              : Column(
+                                  children: _dayDetails.entries
+                                      .map((e) => _buildLogCard(e.key, e.value))
+                                      .toList(),
+                                ))
+                        else
+                          // REPORTS TAB
+                          _buildReportsTab(),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ), // SingleChildScrollView
+                ), // Expanded
+              ], // Outer Column children
+            ), // Outer Column
+          ), // SafeArea
+          if (_isDownloading)
+            Container(
+              color: Colors.black.withOpacity(0.3),
+              child: const Center(
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text(
+                          'Opening Report...',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-    ], // Stack children
-  ), // Stack
-);
+        ], // Stack children
+      ), // Stack
+    );
   }
 
   Future<void> _downloadAndOpenFile(String url, String fileName) async {
@@ -399,8 +410,6 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
       if (mounted) setState(() => _isDownloading = false);
     }
   }
-
-
 
   Widget _buildDaysOfWeek() {
     const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -505,7 +514,8 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
                                   : (isPredictedPeriod
                                         ? const Color(0xFFD98A95)
                                         : const Color(0xFF1A1F26)))),
-                  fontWeight: (isSelected || isToday || hasPeriod || isPredictedPeriod)
+                  fontWeight:
+                      (isSelected || isToday || hasPeriod || isPredictedPeriod)
                       ? FontWeight.bold
                       : FontWeight.w500,
                   fontSize: 14,
@@ -614,8 +624,7 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
       child: Row(
         children: [
           Expanded(child: _tabOption('Logs', 0, Icons.event_note_rounded)),
-          Expanded(
-              child: _tabOption('Reports', 1, Icons.description_outlined)),
+          Expanded(child: _tabOption('Reports', 1, Icons.description_outlined)),
         ],
       ),
     );
@@ -638,25 +647,26 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
                     color: Colors.black.withOpacity(0.06),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ]
               : [],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon,
-                size: 15,
-                color: isSelected
-                    ? const Color(0xFF1E5BB1)
-                    : const Color(0xFF7A8FA6)),
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected
+                  ? const Color(0xFF1E5BB1)
+                  : const Color(0xFF7A8FA6),
+            ),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight:
-                    isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
                     ? const Color(0xFF1E5BB1)
                     : const Color(0xFF7A8FA6),
@@ -671,7 +681,9 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
   Widget _buildReportsTab() {
     if (_reportsList.isEmpty) {
       return _buildEmptyState(
-          'No reports for this day', Icons.description_outlined);
+        'No reports for this day',
+        Icons.description_outlined,
+      );
     }
     return Column(
       children: _reportsList.map((report) => _buildReportCard(report)).toList(),
@@ -785,7 +797,6 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
                   _reportChip('BMI', '${metrics['bmi']}'),
               ]),
 
-
             // ── Blood & Hormones ─────────────────────────────
             () {
               final hormoneEntries = <Widget>[];
@@ -801,14 +812,14 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
                 'prg': 'PRG ng/mL',
               }.entries) {
                 if (metrics[kv.key] != null) {
-                  hormoneEntries
-                      .add(_reportChip(kv.value, '${metrics[kv.key]}'));
+                  hormoneEntries.add(
+                    _reportChip(kv.value, '${metrics[kv.key]}'),
+                  );
                 }
               }
               if (hormoneEntries.isEmpty) return const SizedBox.shrink();
               return _reportSection('BLOOD & HORMONES', hormoneEntries);
             }(),
-
           ],
 
           // ── Attached Files ──────────────────────────────────
@@ -947,9 +958,7 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
                     height: 300,
                     color: const Color(0xFF1A2B3C),
                     child: const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                      ),
+                      child: CircularProgressIndicator(color: Colors.white),
                     ),
                   );
                 },
@@ -998,9 +1007,7 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: positive
-            ? const Color(0xFFE8F5EE)
-            : const Color(0xFFF4F6FA),
+        color: positive ? const Color(0xFFE8F5EE) : const Color(0xFFF4F6FA),
         borderRadius: BorderRadius.circular(10),
       ),
       child: RichText(
@@ -1043,8 +1050,7 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
       ),
       child: Column(
         children: [
-          Icon(icon,
-              size: 48, color: const Color(0xFFDEE5EE).withOpacity(0.8)),
+          Icon(icon, size: 48, color: const Color(0xFFDEE5EE).withOpacity(0.8)),
           const SizedBox(height: 16),
           Text(
             message,
