@@ -6,7 +6,9 @@ import '../onboarding/condition_selection_screen.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
 import '../step_tracker/step_tracker_screen.dart';
+import '../logs/pregnancy_log_screen.dart';
 import '../../services/step_tracker_service.dart';
+import '../../services/blood_sugar_service.dart';
 
 class PregnancyDashboard extends StatefulWidget {
   final String userName;
@@ -39,6 +41,11 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
   final StepTrackerService _stepService = StepTrackerService();
   StreamSubscription? _stepSubscription;
 
+  // Blood sugar data
+  double _lastBloodSugar = 94.0;
+  String _lastBloodSugarType = 'Pre-meal';
+  bool _isLoadingBloodSugar = true;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +55,94 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
     _localWeight = widget.weight;
     _loadData();
     _initializeStepTracker();
+    _fetchLatestBloodSugar();
+  }
+
+  Future<void> _fetchLatestBloodSugar() async {
+    try {
+      final reading = await BloodSugarService.getLatestReading();
+      if (reading != null && mounted) {
+        setState(() {
+          _lastBloodSugar = (reading['value'] as num).toDouble();
+          _lastBloodSugarType = reading['type'] ?? 'Pre-meal';
+          _isLoadingBloodSugar = false;
+        });
+      } else {
+        if (mounted) setState(() => _isLoadingBloodSugar = false);
+      }
+    } catch (e) {
+      debugPrint('Error fetching blood sugar: $e');
+      if (mounted) setState(() => _isLoadingBloodSugar = false);
+    }
+  }
+
+  void _showAddBloodSugarDialog() {
+    final TextEditingController controller =
+        TextEditingController(text: _lastBloodSugar.toString());
+    String selectedType = 'Fasting';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Log Blood Sugar'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Reading (mg/dL)',
+                  hintText: 'e.g. 95',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedType,
+                items: ['Fasting', 'Post-meal', 'Random']
+                    .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setDialogState(() => selectedType = val);
+                },
+                decoration: const InputDecoration(
+                    labelText: 'Type', border: OutlineInputBorder()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final val = double.tryParse(controller.text);
+                if (val != null) {
+                  await BloodSugarService.saveReading(
+                    value: val,
+                    type: selectedType,
+                    date: DateTime.now(),
+                  );
+                  _fetchLatestBloodSugar();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Blood sugar logged successfully!')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3A6EA8),
+                  foregroundColor: Colors.white),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _initializeStepTracker() async {
@@ -175,109 +270,123 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
         const SizedBox(height: 24),
 
         // ── Blood Sugar Status Card ──────────────────────────
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'BLOOD SUGAR STATUS',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF3A6EA8),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  Icon(Icons.water_drop, color: Colors.blue[800], size: 20),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  const Text(
-                    '94',
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1A2B3C),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'mg/dL',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF7A8FA6),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: const [
-                  Icon(Icons.check_circle, color: Colors.green, size: 16),
-                  SizedBox(width: 6),
-                  Text(
-                    'In target range (Pre-meal)',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF7A8FA6)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                height: 36,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(18),
+        GestureDetector(
+          onTap: _showAddBloodSugarDialog,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
-                child: Row(
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      flex: 6,
-                      child: Container(
-                        height: 28,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF3A6EA8), Color(0xFF6A9ED8)],
+                    const Text(
+                      'BLOOD SUGAR STATUS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF3A6EA8),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Icon(Icons.add_circle_outline, color: Colors.blue[800], size: 20),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      _lastBloodSugar.toStringAsFixed(0),
+                      style: const TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1A2B3C),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'mg/dL',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF7A8FA6),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      _lastBloodSugar < 140 ? Icons.check_circle : Icons.warning_rounded,
+                      color: _lastBloodSugar < 140 ? Colors.green : Colors.orange,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _lastBloodSugar < 140 
+                        ? 'In target range ($_lastBloodSugarType)' 
+                        : 'Above target range ($_lastBloodSugarType)',
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF7A8FA6)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: (_lastBloodSugar / 200 * 10).round().clamp(1, 10),
+                        child: Container(
+                          height: 28,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: _lastBloodSugar < 140 
+                                ? [const Color(0xFF3A6EA8), const Color(0xFF6A9ED8)]
+                                : [Colors.orange, Colors.deepOrangeAccent],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 12),
-                        child: const Text(
-                          'Stable',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Text(
+                            _lastBloodSugar < 140 ? 'Stable' : 'High',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const Expanded(flex: 4, child: SizedBox()),
-                  ],
+                      Expanded(
+                        flex: 10 - (_lastBloodSugar / 200 * 10).round().clamp(1, 10),
+                        child: const SizedBox()
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
@@ -497,78 +606,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
 
         const SizedBox(height: 16),
 
-        // ── Insight card ──────────────────────────────────────
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const PregnancyInsightsScreen(),
-              ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F0F8),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: const Color(0xFF3A6EA8).withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    color: Color(0xFF3A6EA8),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Smart Insight detected',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A2B3C),
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Your blood sugar levels are slightly high. Tap to see detailed recommendations.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF7A8FA6),
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: Color(0xFF7A8FA6),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
 
         // ── Quick Actions ─────────────────────────────────────
         const Text(
@@ -582,28 +620,13 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
         ),
         const SizedBox(height: 14),
         GridView.count(
-          crossAxisCount: 3,
+          crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio:
-              0.9, // Adjusted for 3 columns
+          childAspectRatio: 2.2,
           children: [
-            _quickAction(
-              icon: Icons.auto_awesome,
-              label: 'AI\nInsights',
-              color: const Color(0xFF3A6EA8),
-              bgColor: const Color(0xFFE8F0F8),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PregnancyInsightsScreen(),
-                  ),
-                );
-              },
-            ),
             _quickAction(
               icon: Icons.chat_bubble_outline,
               label: 'AI Chat',
@@ -650,7 +673,6 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 90,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -662,16 +684,16 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
           ),
           borderRadius: BorderRadius.circular(18),
         ),
-        child: Column(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 8),
+            Icon(icon, color: Colors.white, size: 24),
+            const SizedBox(width: 10),
             Text(
-              label,
+              label.replaceAll('\n', ' '),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
                 height: 1.2,

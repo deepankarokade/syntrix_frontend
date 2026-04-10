@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
-import 'screens/authentication/login_screen.dart';
-import 'screens/home/home_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
 import 'widgets/auth_wrapper.dart';
 import 'package:shared_preferences/shared_preferences.dart';

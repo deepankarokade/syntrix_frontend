@@ -67,6 +67,8 @@ class _MenopauseInsightsScreenState extends State<MenopauseInsightsScreen> {
   "riskLabel": "Mild Severity",
   "riskPercentage": 30,
   "riskDescription": "A short 1-sentence description based on their symptoms",
+  "consultDoctor": true,
+  "doctorReason": "Explain why they need to see a doctor if applicable (e.g. rapid symptom escalation)",
   "keyInsight1": "Short 3-4 word phrase (e.g. Sleep quality poor)",
   "keyInsight1Desc": "Short 1-sentence description of the first insight",
   "keyInsight2": "Short 3-4 word phrase (e.g. Frequent hot flashes)",
@@ -126,10 +128,65 @@ Logs: $contextStr""";
   Widget _buildAiInsightUI() {
     final ai = _aiInsightJson!;
     final Color riskColor = const Color(0xFFE59A2F);
+    final bool needsDoctor = ai['consultDoctor'] ?? false;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Medical Warning (If relevant)
+        if (needsDoctor) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFECEC),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFB5616A).withOpacity(0.3), width: 1.5),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFB5616A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.medical_services_rounded, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CONSULT A DOCTOR',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFFB5616A),
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        ai['doctorReason'] ?? 'AI analysis suggests speaking with a medical professional regarding your current symptoms.',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1A2B3C),
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
         // AI Assessment Card
         Container(
           width: double.infinity,

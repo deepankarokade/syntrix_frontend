@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'pregnancy_log_service.dart';
 
 class AiService {
   static String get _apiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
@@ -78,6 +79,46 @@ OUTPUT FORMAT:
 - Beautiful Markdown. DO NOT use Tables (they render poorly on mobile). Use detailed bulleted/numbered lists for the meal plan.
 - Clear headers and bold text.
 - Professional medical reasoning.
+""";
+
+  static const String pregnancyDietSystemPrompt = """
+You are an EXPERT PRENATAL NUTRITION AI specializing in pregnancy diet planning.
+
+MISSION:
+Generate a highly personalized, week-specific pregnancy diet plan based on the mother's lifestyle logs, current pregnancy week, trimester, and health data.
+
+CRITICAL RULES:
+- Consider the EXACT pregnancy week — nutritional needs change weekly.
+- ANALYZE the lifestyle logs to identify bad eating patterns (junk food, skipped meals, caffeine excess).
+- If she is eating unhealthy foods, WARN her and suggest replacements.
+- Include trimester-specific nutrients (Week 1-12: Folic acid focus, Week 13-26: Iron + Calcium, Week 27-40: DHA + Protein).
+- Plan meals that are PRACTICAL and use regional/local foods.
+- Flag any dangerous foods for pregnancy (raw fish, unpasteurized dairy, excess caffeine, etc.).
+
+STRUCTURE YOUR RESPONSE:
+
+1. ## 🚨 LIFESTYLE WARNINGS
+   Based on her logs, list what she is doing WRONG and must STOP immediately.
+
+2. ## 🍽️ WEEKLY MEAL PLAN (Week-Specific)
+   Full daily meal schedule specific to her pregnancy week.
+   Include: Breakfast, Mid-morning Snack, Lunch, Afternoon Snack, Dinner, Bedtime Snack.
+
+3. ## 💊 ESSENTIAL NUTRIENTS THIS WEEK
+   List trimester/week-specific vitamins, minerals, and supplements.
+   Explain WHY each is critical for baby's current development stage.
+
+4. ## 🚫 FOODS TO STRICTLY AVOID
+   Based on her ACTUAL food logs, flag dangerous items.
+   If she reported eating junk food, caffeine, or raw foods — CALL IT OUT.
+
+5. ## ✅ SUPERFOODS TO ADD
+   Recommend specific "power foods" for her current week.
+
+OUTPUT FORMAT:
+- Beautiful Markdown with emojis.
+- DO NOT use tables. Use bulleted/numbered lists.
+- Be specific, not generic. Use her actual log data.
 """;
 
   static const List<String> _freeModels = [
@@ -231,23 +272,29 @@ OUTPUT FORMAT:
           context.writeln("  - Sleep: ${data['sleep'] ?? 'N/A'}");
           context.writeln("  - Activity: ${data['activity'] ?? 'N/A'}");
           context.writeln("  - Weight: ${data['weight'] ?? 'Same as profile'}");
-          if (data['waist'] != null)
+          if (data['waist'] != null) {
             context.writeln(
               "  - Waist: ${data['waist']} cm, Hip: ${data['hip']} cm",
             );
-          if (data['ateFastFood'] != null)
+          }
+          if (data['ateFastFood'] != null) {
             context.writeln("  - Fast Food Consumed: ${data['ateFastFood']}");
+          }
           // Pregnancy-specific log data
-          if (data['nausea'] != null)
+          if (data['nausea'] != null) {
             context.writeln("  - Nausea: ${data['nausea']}");
-          if (data['swelling'] != null)
+          }
+          if (data['swelling'] != null) {
             context.writeln("  - Swelling: ${data['swelling']}");
-          if (data['babyKicks'] != null)
+          }
+          if (data['babyKicks'] != null) {
             context.writeln("  - Baby Kicks: ${data['babyKicks']}");
-          if (data['prenatalVitamins'] != null)
+          }
+          if (data['prenatalVitamins'] != null) {
             context.writeln(
               "  - Prenatal Vitamins: ${data['prenatalVitamins']}",
             );
+          }
           if (data['contractionNotes'] != null &&
               data['contractionNotes'].toString().isNotEmpty) {
             context.writeln(
@@ -255,9 +302,33 @@ OUTPUT FORMAT:
             );
           }
           // Menopause-specific log data
-          if (data['irregularBleeding'] == true)
+          if (data['irregularBleeding'] == true) {
             context.writeln("  - Irregular Bleeding: Yes");
+          }
           if (data['spotting'] == true) context.writeln("  - Spotting: Yes");
+        }
+      }
+
+      // ── Pregnancy Lifestyle Logs (if pregnant) ───────────────────────
+      if (profile['lifeStage']?.toString().toLowerCase() == 'pregnant') {
+        try {
+          final pregnancyContext =
+              await PregnancyLogService.buildPregnancyAIContext(user.uid);
+          context.writeln("\n$pregnancyContext");
+          
+          // Also include pregnancy info
+          final pregInfo =
+              await PregnancyLogService.getPregnancyInfo(user.uid);
+          context.writeln("\nPREGNANCY STATUS:");
+          context.writeln("- Current Week: ${pregInfo['currentWeek']}");
+          context.writeln("- Trimester: ${pregInfo['trimester']}");
+          context.writeln("- Remaining Weeks: ${pregInfo['remainingWeeks']}");
+          context.writeln("- Remaining Days: ${pregInfo['remainingDays']}");
+          if (pregInfo['dueDate'] != null) {
+            context.writeln("- Due Date: ${pregInfo['dueDate']}");
+          }
+        } catch (e) {
+          context.writeln("\nPregnancy lifestyle data unavailable: $e");
         }
       }
 

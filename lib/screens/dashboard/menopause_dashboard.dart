@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../onboarding/condition_selection_screen.dart';
 import '../chatbot/chatbot_screen.dart';
-import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
 import '../step_tracker/step_tracker_screen.dart';
 import '../../services/ai_service.dart';

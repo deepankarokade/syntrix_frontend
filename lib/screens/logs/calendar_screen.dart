@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
-import 'dart:convert';
 import 'log_entry_screen.dart';
 import '../report/reports_screen.dart';
 import '../../services/cycle_prediction_service.dart';

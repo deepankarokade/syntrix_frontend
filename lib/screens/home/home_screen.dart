@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
 import '../insights/insights_screen.dart';
+import '../insights/pregnancy_insights_screen.dart';
+import '../insights/menopause_insights_screen.dart';
 import '../logs/calendar_screen.dart';
+import '../logs/pregnancy_log_screen.dart';
 import '../report/reports_screen.dart';
 import '../logs/log_entry_screen.dart';
 import '../profile/profile_screen.dart';
@@ -235,10 +237,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     switch (_currentTab) {
       case 1:
-        currentBody = const InsightsScreen();
+        // For pregnant users, show Pregnancy AI Insights instead of generic Insights
+        if (_lifeStage == 'pregnant') {
+          currentBody = const PregnancyInsightsScreen();
+        } else if (_lifeStage == 'menopause') {
+          currentBody = const MenopauseInsightsScreen();
+        } else {
+          currentBody = const InsightsScreen();
+        }
         break;
       case 2:
-        currentBody = const LogEntryScreen();
+        // For pregnant users, show Pregnancy Lifestyle Log instead of generic Add Log
+        if (_lifeStage == 'pregnant') {
+          currentBody = const PregnancyLogScreen();
+        } else {
+          currentBody = const LogEntryScreen();
+        }
         break;
       case 3:
         currentBody = const ProfileScreen();
@@ -284,6 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: currentBody,
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentTab,
+        lifeStage: _lifeStage,
         onTap: (index) {
           setState(() {
             _currentTab = index;

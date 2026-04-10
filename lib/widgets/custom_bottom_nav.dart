@@ -3,21 +3,31 @@ import 'package:flutter/material.dart';
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final String lifeStage;
 
   const CustomBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.lifeStage = 'none',
   });
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      (Icons.home_filled, 'Home'),
-      (Icons.bar_chart_rounded, 'Insights'),
-      (Icons.description_rounded, 'Add Log'),
-      (Icons.person_rounded, 'Profile'),
-    ];
+    // Use condition-specific tabs
+    final items = (lifeStage == 'pregnant' || lifeStage == 'menopause')
+        ? const [
+            (Icons.home_filled, 'Home'),
+            (Icons.auto_awesome, 'AI Insights'),
+            (Icons.edit_note_rounded, 'Lifestyle' ),
+            (Icons.person_rounded, 'Profile'),
+          ]
+        : const [
+            (Icons.home_filled, 'Home'),
+            (Icons.bar_chart_rounded, 'Insights'),
+            (Icons.description_rounded, 'Add Log'),
+            (Icons.person_rounded, 'Profile'),
+          ];
 
     return Container(
       height: 95,
@@ -38,6 +48,16 @@ class CustomBottomNavBar extends StatelessWidget {
         children: List.generate(items.length, (i) {
           final (icon, label) = items[i];
           final selected = i == currentIndex;
+
+          // Use purple accent for pregnancy-specific tabs
+          final isPregnancyTab = lifeStage == 'pregnant' && (i == 1 || i == 2);
+          final activeColor = isPregnancyTab
+              ? const Color(0xFF7B2D8E)
+              : const Color(0xFF4A6B8D);
+          final activeBg = isPregnancyTab
+              ? const Color(0xFFF3E5F5)
+              : const Color(0xFFE8F0FB);
+
           return GestureDetector(
             onTap: () => onTap(i),
             behavior: HitTestBehavior.opaque,
@@ -52,17 +72,13 @@ class CustomBottomNavBar extends StatelessWidget {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: selected
-                        ? const Color(0xFFE8F0FB)
-                        : Colors.transparent,
+                    color: selected ? activeBg : Colors.transparent,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Icon(
                     icon,
                     size: 26,
-                    color: selected
-                        ? const Color(0xFF4A6B8D)
-                        : const Color(0xFFB0C4D4),
+                    color: selected ? activeColor : const Color(0xFFB0C4D4),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -71,9 +87,7 @@ class CustomBottomNavBar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    color: selected
-                        ? const Color(0xFF4A6B8D)
-                        : const Color(0xFFB0C4D4),
+                    color: selected ? activeColor : const Color(0xFFB0C4D4),
                   ),
                 ),
               ],

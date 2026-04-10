@@ -62,6 +62,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   bool _tookPrenatalVitamins = false;
   final TextEditingController _babyKicksCtrl = TextEditingController();
   final TextEditingController _contractionNotesCtrl = TextEditingController();
+  final TextEditingController _pregMorningCtrl = TextEditingController();
+  final TextEditingController _pregAfternoonCtrl = TextEditingController();
+  final TextEditingController _pregNightCtrl = TextEditingController();
 
   final List<Map<String, String>> _moods = [
     {'emoji': '😢', 'label': 'Sad'},
@@ -184,6 +187,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
     _medicationNameCtrl.dispose();
     _babyKicksCtrl.dispose();
     _contractionNotesCtrl.dispose();
+    _pregMorningCtrl.dispose();
+    _pregAfternoonCtrl.dispose();
+    _pregNightCtrl.dispose();
     super.dispose();
   }
 
@@ -253,6 +259,11 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
         'babyKicks': _lifeStage?.toLowerCase() == 'pregnant' ? (int.tryParse(_babyKicksCtrl.text) ?? 0) : null,
         'contractionNotes': _lifeStage?.toLowerCase() == 'pregnant' ? _contractionNotesCtrl.text.trim() : null,
         'prenatalVitamins': _lifeStage?.toLowerCase() == 'pregnant' ? _tookPrenatalVitamins : null,
+        'pregnancyLifestyle': _lifeStage?.toLowerCase() == 'pregnant' ? {
+          'morning': _pregMorningCtrl.text.trim(),
+          'afternoon': _pregAfternoonCtrl.text.trim(),
+          'night': _pregNightCtrl.text.trim(),
+        } : null,
         'lifeStageAtLog': _lifeStage,
       }, SetOptions(merge: true));
 
@@ -530,6 +541,45 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                     maxLines: 2,
                     decoration: const InputDecoration(
                       hintText: 'Any contractions, pelvic pressure, etc.',
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _labeledContainer(
+                  label: 'Morning Lifestyle Notes',
+                  child: TextField(
+                    controller: _pregMorningCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Morning sickness, hydration, exercise',
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _labeledContainer(
+                  label: 'Afternoon Lifestyle Notes',
+                  child: TextField(
+                    controller: _pregAfternoonCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Diet changes, energy levels',
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _labeledContainer(
+                  label: 'Night Lifestyle Notes',
+                  child: TextField(
+                    controller: _pregNightCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Sleep quality, fetal movement',
                       border: InputBorder.none,
                       hintStyle: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13),
                     ),

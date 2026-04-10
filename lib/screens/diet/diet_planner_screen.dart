@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import '../../services/user_session.dart';
 import '../../services/ai_service.dart';
+import '../../services/pregnancy_log_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -108,11 +108,38 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
       final contextData = await AiService.getGroundingContext();
       print("Diet: Got grounding context (${contextData.length} chars)");
 
+      String systemPrompt = AiService.dietSystemPrompt;
+      String extraContext = '';
+
+      // Use pregnancy-specific diet prompt if pregnant
+      if (_userCondition == 'pregnant') {
+        systemPrompt = AiService.pregnancyDietSystemPrompt;
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          try {
+            final pregInfo = await PregnancyLogService.getPregnancyInfo(user.uid);
+            final pregContext = await PregnancyLogService.buildPregnancyAIContext(user.uid);
+            extraContext = '''
+
+PREGNANCY STATUS:
+- Current Week: ${pregInfo['currentWeek']}
+- Trimester: ${pregInfo['trimester']}
+- Remaining Weeks: ${pregInfo['remainingWeeks']}
+
+PREGNANCY LIFESTYLE LOGS:
+$pregContext''';
+          } catch (e) {
+            print('Diet: Error fetching pregnancy info: $e');
+          }
+        }
+      }
+
       final messages = [
-        {"role": "system", "content": AiService.dietSystemPrompt},
+        {"role": "system", "content": systemPrompt},
         {
           "role": "user",
           "content": "Grounded User Data:\n$contextData\n\n"
+                    "$extraContext\n\n"
                     "Selected Goal/Condition: $_userCondition. "
                     "Requested Region: $region. "
                     "Current Symptoms detected from logs: $_userSymptoms. "
