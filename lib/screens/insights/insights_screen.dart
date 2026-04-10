@@ -10,12 +10,6 @@ class InsightsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Color(0xFF2E4A6B)),
-            onPressed: () {},
-          ),
-        ),
         title: const Text(
           'Insights',
           style: TextStyle(
@@ -24,13 +18,7 @@ class InsightsScreen extends StatelessWidget {
             fontSize: 18,
           ),
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Color(0xFF2E4A6B)),
-            onPressed: () {},
-          ),
-        ],
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),

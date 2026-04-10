@@ -214,14 +214,25 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ─────────────────────────────────────────────
-              _buildAppBar(),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Add Log',
+          style: TextStyle(
+            color: Color(0xFF2E4A6B),
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: false,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
               const SizedBox(height: 24),
               const Text(
                 'Track Your Health',
@@ -496,37 +507,11 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 
   // ── Helper UI Components ──
-  Widget _buildAppBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.menu, color: Color(0xFF2E4A6B), size: 24),
-          onPressed: () {},
-        ),
-        const Text(
-          'Add Log',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF2E4A6B),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(
-            Icons.notifications_none_rounded,
-            color: Color(0xFF2E4A6B),
-          ),
-          onPressed: () {},
-        ),
-      ],
-    );
-  }
+
 
   Widget _sectionHeader(String title) {
     return Text(

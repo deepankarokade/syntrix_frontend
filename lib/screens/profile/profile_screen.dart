@@ -211,13 +211,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Color(0xFF2E4A6B),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none_rounded,
-                      color: Color(0xFF2E4A6B),
-                    ),
-                    onPressed: () {},
-                  ),
                 ],
               ),
 

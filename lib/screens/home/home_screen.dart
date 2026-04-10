@@ -68,15 +68,32 @@ class _HomeScreenState extends State<HomeScreen> {
         // Extract values
         final nameStr = data['name'] as String? ?? '';
         final stage = data['lifeStage'] as String? ?? 'none';
-        final weightVal = data['weight'] != null ? (data['weight'] as num).toDouble() : null;
-        final heightVal = data['height'] != null ? (data['height'] as num).toDouble() : null;
+        final weightVal = data['weight'] != null
+            ? (data['weight'] as num).toDouble()
+            : null;
+        final heightVal = data['height'] != null
+            ? (data['height'] as num).toDouble()
+            : null;
         final photoUrl = data['photoUrl'] as String?;
-        
+
         String formattedDob = "--";
         if (data['dob'] != null) {
           final Timestamp ts = data['dob'];
           final DateTime dt = ts.toDate();
-          final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          final months = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ];
           formattedDob = "${months[dt.month - 1]} ${dt.day}, ${dt.year}";
         }
 
@@ -153,50 +170,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // ── Top bar ──────────────────────────────────────────
                 Row(
+                  // mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Avatar
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFDDE8F5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        color: Color(0xFF2E4A6B),
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
                     const Text(
                       'Serene Cycle',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF2E4A6B),
-                      ),
-                    ),
-                    const Spacer(),
-                    // Bell
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.notifications_outlined,
-                        color: Color(0xFF2E4A6B),
-                        size: 20,
                       ),
                     ),
                   ],
