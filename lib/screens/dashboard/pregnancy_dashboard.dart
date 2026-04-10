@@ -559,60 +559,58 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
           ),
         ),
         const SizedBox(height: 14),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              _quickAction(
-                icon: Icons.auto_awesome,
-                label: 'AI\nInsights',
-                color: const Color(0xFF3A6EA8),
-                bgColor: const Color(0xFFE8F0F8),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PregnancyInsightsScreen()),
-                  );
-                },
-              ),
-              const SizedBox(width: 16),
-              _quickAction(
-                icon: Icons.chat_bubble_outline,
-                label: 'AI Chat',
-                color: const Color(0xFFB5616A),
-                bgColor: const Color(0xFFFFECEC),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ChatbotScreen()),
-                  );
-                },
-              ),
-              const SizedBox(width: 16),
-              _quickAction(
-                icon: Icons.restaurant_menu,
-                label: 'Meal Plan',
-                color: const Color(0xFF2E7D6B),
-                bgColor: const Color(0xFFE0F4F0),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const DietPlannerScreen()),
-                  );
-                },
-              ),
-              const SizedBox(width: 16),
-              _quickAction(
-                icon: Icons.calendar_month,
-                label: 'Tracking',
-                color: const Color(0xFFD68A3D),
-                bgColor: const Color(0xFFFDF3E9),
-                onTap: () => onTabChange(2), // 2 is LogEntryScreen
-              ),
-            ],
-          ),
+        GridView.count(
+          crossAxisCount: 4,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 0.8, // Adjusted to get closer to 90px height on standard screens
+          children: [
+            _quickAction(
+              icon: Icons.auto_awesome,
+              label: 'AI\nInsights',
+              color: const Color(0xFF3A6EA8),
+              bgColor: const Color(0xFFE8F0F8),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PregnancyInsightsScreen()),
+                );
+              },
+            ),
+            _quickAction(
+              icon: Icons.chat_bubble_outline,
+              label: 'AI Chat',
+              color: const Color(0xFFB5616A),
+              bgColor: const Color(0xFFFFECEC),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+                );
+              },
+            ),
+            _quickAction(
+              icon: Icons.restaurant_menu,
+              label: 'Meal Plan',
+              color: const Color(0xFF2E7D6B),
+              bgColor: const Color(0xFFE0F4F0),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DietPlannerScreen()),
+                );
+              },
+            ),
+            _quickAction(
+              icon: Icons.calendar_month,
+              label: 'Tracking',
+              color: const Color(0xFFD68A3D),
+              bgColor: const Color(0xFFFDF3E9),
+              onTap: () => onTabChange(2),
+            ),
+          ],
         ),
 
         const SizedBox(height: 30),
@@ -629,29 +627,33 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: color, size: 26),
+      child: Container(
+        height: 90,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.2),
+            width: 1,
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF3D5166),
-              fontWeight: FontWeight.w500,
-              height: 1.3,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 26),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color(0xFF3D5166),
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

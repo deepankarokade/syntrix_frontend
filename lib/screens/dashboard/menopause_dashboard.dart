@@ -298,45 +298,43 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
           ),
         ),
         const SizedBox(height: 14),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              _quickActionButton(
-                Icons.edit_calendar_outlined,
-                'Log Entry',
-                const Color(0xFFB5616A),
-                const Color(0xFFFFECEC),
-                () => widget.onTabChange(2),
-              ),
-              const SizedBox(width: 20),
-              _quickActionButton(
-                Icons.chat_bubble_outline,
-                'AI Chat',
-                const Color(0xFF3A6EA8),
-                const Color(0xFFE8F0F8),
-                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatbotScreen())),
-              ),
-              const SizedBox(width: 20),
-              _quickActionButton(
-                Icons.restaurant_menu,
-                'Diet Plan',
-                const Color(0xFF2E7D6B),
-                const Color(0xFFE0F4F0),
-                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DietPlannerScreen())),
-              ),
-              const SizedBox(width: 20),
-              _quickActionButton(
-                Icons.bar_chart,
-                'Reports',
-                const Color(0xFFD68A3D),
-                const Color(0xFFFDF3E9),
-                () => widget.onTabChange(1),
-              ),
-            ],
-          ),
+        GridView.count(
+          crossAxisCount: 4,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 0.82,
+          children: [
+            _quickActionButton(
+              Icons.edit_calendar_outlined,
+              'Log Entry',
+              const Color(0xFFB5616A),
+              const Color(0xFFFFECEC),
+              () => widget.onTabChange(2),
+            ),
+            _quickActionButton(
+              Icons.chat_bubble_outline,
+              'AI Chat',
+              const Color(0xFF3A6EA8),
+              const Color(0xFFE8F0F8),
+              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatbotScreen())),
+            ),
+            _quickActionButton(
+              Icons.restaurant_menu,
+              'Diet Plan',
+              const Color(0xFF2E7D6B),
+              const Color(0xFFE0F4F0),
+              () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DietPlannerScreen())),
+            ),
+            _quickActionButton(
+              Icons.bar_chart,
+              'Reports',
+              const Color(0xFFD68A3D),
+              const Color(0xFFFDF3E9),
+              () => widget.onTabChange(1),
+            ),
+          ],
         ),
 
         const SizedBox(height: 40),
@@ -478,16 +476,32 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
   Widget _quickActionButton(IconData icon, String label, Color color, Color bgColor, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
-            child: Icon(icon, color: color, size: 24),
+      child: Container(
+        height: 90,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.2),
+            width: 1,
           ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF3D5166))),
-        ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF3D5166),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
