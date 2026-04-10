@@ -12,37 +12,71 @@ class DietPlannerScreen extends StatefulWidget {
   State<DietPlannerScreen> createState() => _DietPlannerScreenState();
 }
 
-class _DietPlannerScreenState extends State<DietPlannerScreen> {
+class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _regionController = TextEditingController();
-  final TextEditingController _symptomsController = TextEditingController();
-  String _activityLevel = 'Moderate';
-
+  
   bool _isLoading = false;
   bool _fetchingProfile = true;
-  String? _dietPlanResponse;
+  String? _activePlan;
+  String _userCondition = 'General healthy eating';
+  String _userSymptoms = 'None';
+
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadUserProfile();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _regionController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      setState(() => _fetchingProfile = false);
+      if (mounted) setState(() => _fetchingProfile = false);
       return;
     }
 
     try {
+      // 1. Fetch condition from profile
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (doc.exists && mounted) {
         final data = doc.data()!;
-        setState(() {
-          if (data['region'] != null) _regionController.text = data['region'];
-          if (data['activityLevel'] != null) _activityLevel = data['activityLevel'];
-          if (data['symptoms'] != null) _symptomsController.text = data['symptoms'];
-        });
+        _userCondition = data['lifeStage'] ?? 'None';
+        if (data['region'] != null) _regionController.text = data['region'];
+        _activePlan = data['activeDietPlan'];
+        if (_activePlan != null) {
+          _tabController.index = 1;
+        }
+      }
+
+      // 2. Fetch symptoms from latest log
+      final logs = await FirebaseFirestore.instance
+          .collection('logs')
+          .doc(user.uid)
+          .collection('daily_entries')
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .get();
+      
+      if (logs.docs.isNotEmpty && mounted) {
+        final logData = logs.docs.first.data();
+        // Extract symptoms if present
+        if (logData['symptoms'] != null) {
+          if (logData['symptoms'] is Map) {
+            final symMap = logData['symptoms'] as Map;
+            _userSymptoms = symMap.keys.where((k) => symMap[k] != 'None').join(', ');
+          } else if (logData['symptoms'] is String) {
+            _userSymptoms = logData['symptoms'];
+          }
+        }
       }
     } catch (e) {
       print("Error loading profile for diet: $e");
@@ -62,7 +96,6 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> {
 
     setState(() {
       _isLoading = true;
-      _dietPlanResponse = null;
     });
 
     final contextData = await AiService.getGroundingContext();
@@ -73,27 +106,28 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> {
         "role": "user",
         "content": "Grounded User Data:\n$contextData\n\n"
                   "Request: Generate a diet plan for region: $region. "
-                  "Target Activity Level: $_activityLevel. "
-                  "Additional User Notes: ${_symptomsController.text.isEmpty ? 'None' : _symptomsController.text}. "
-                  "Strictly follow the medical grounding provided above."
+                  "Condition Context: $_userCondition. "
+                  "Current Symptoms detected from logs: $_userSymptoms. "
+                  "Strictly follow the medical grounding provided for this specific condition."
       },
     ];
 
-    // Save preferences for next time
+    final response = await AiService.sendMessage(messages: messages, isDiet: true);
+
+    // Save preferences and the plan for next time
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'region': region,
-        'activityLevel': _activityLevel,
+        'activeDietPlan': response,
       }, SetOptions(merge: true));
     }
-
-    final response = await AiService.sendMessage(messages: messages, isDiet: true);
 
     if (mounted) {
       setState(() {
         _isLoading = false;
-        _dietPlanResponse = response;
+        _activePlan = response;
+        _tabController.animateTo(1);
       });
     }
   }
@@ -105,126 +139,127 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> {
       appBar: AppBar(
         title: const Text('AI Diet Planner', style: TextStyle(color: Color(0xFF2E4A6B), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Color(0xFF2E4A6B)),
+        elevation: 0,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: const Color(0xFF3A6EA8),
+          unselectedLabelColor: const Color(0xFF7A8FA6),
+          indicatorColor: const Color(0xFF3A6EA8),
+          tabs: const [
+            Tab(text: 'Planner'),
+            Tab(text: 'My Active Plan'),
+          ],
+        ),
       ),
       body: _fetchingProfile 
           ? const Center(child: CircularProgressIndicator())
-          : (_dietPlanResponse != null ? _buildResultView() : _buildFormView()),
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildPlannerForm(),
+                _buildActivePlanView(),
+              ],
+            ),
     );
   }
 
-  Widget _buildFormView() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text(
-          'Personalized Diet Generation',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A2B3C)),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          "We use your profile data (Condition: ${UserSession.condition ?? 'None'}) to tailor this plan.",
-          style: const TextStyle(color: Color(0xFF7A8FA6), fontSize: 13),
-        ),
-        const SizedBox(height: 20),
-        _buildTextField('Region/Location (e.g. South India, New York, Mediterranean)', _regionController),
-        const SizedBox(height: 16),
-        _buildTextField('Current Symptoms (Optional)', _symptomsController, maxLines: 3),
-        const SizedBox(height: 16),
-        const Text('Activity Level', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3D5166))),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _activityLevel,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-          items: ['Low', 'Moderate', 'High'].map((String level) {
-            return DropdownMenuItem<String>(
-              value: level,
-              child: Text(level),
-            );
-          }).toList(),
-          onChanged: (val) {
-            if (val != null) setState(() => _activityLevel = val);
-          },
-        ),
-        const SizedBox(height: 32),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _generateDietPlan,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF3A6EA8),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          child: _isLoading
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Text('Generate Diet Plan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller, {int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF3D5166))),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildResultView() {
-    return SafeArea(
+  Widget _buildPlannerForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-                  ],
-                ),
-                child: MarkdownBody(
-                  data: _dietPlanResponse!,
-                  styleSheet: MarkdownStyleSheet(
-                    h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A2B3C)),
-                    h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF3A6EA8)),
-                    p: const TextStyle(fontSize: 15, color: Color(0xFF3D5166), height: 1.5),
-                  ),
-                ),
+          const Text(
+            'Tell us your location',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF1A2B3C)),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "We'll fetch your current health condition and symptoms automatically to create the best plan for you.",
+            style: TextStyle(fontSize: 15, color: Color(0xFF7A8FA6), height: 1.4),
+          ),
+          const SizedBox(height: 32),
+          _buildTextField('Region (e.g. South India, Europe)', _regionController),
+          const SizedBox(height: 12),
+          _infoTag('Detected Condition: ${_userCondition.toUpperCase()}'),
+          _infoTag('Current Symptoms: $_userSymptoms'),
+          const SizedBox(height: 40),
+          ElevatedButton(
+            onPressed: _isLoading ? null : _generateDietPlan,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3A6EA8),
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: _isLoading
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text('Generate Meal Plan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoTag(String text) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+      child: Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFF7A8FA6), fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        hintText: label,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF3A6EA8), width: 2)),
+      ),
+    );
+  }
+
+  Widget _buildActivePlanView() {
+    if (_activePlan == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.restaurant_menu, size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            const Text('No active plan. Generate one first!', style: TextStyle(color: Color(0xFF7A8FA6))),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('YOUR TAILORED DIET', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFD68A3D), letterSpacing: 1.2)),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+            child: MarkdownBody(
+              data: _activePlan!,
+              styleSheet: MarkdownStyleSheet(
+                h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A2B3C)),
+                h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF3A6EA8)),
+                p: const TextStyle(fontSize: 15, color: Color(0xFF3D5166), height: 1.5),
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: ElevatedButton(
-              onPressed: () => setState(() => _dietPlanResponse = null),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB5616A),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Adjust Preferences', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-            ),
+          const SizedBox(height: 32),
+          TextButton.icon(
+            onPressed: () => _tabController.animateTo(0),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Update Plan'),
           ),
         ],
       ),
