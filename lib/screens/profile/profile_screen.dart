@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/cloudinary_service.dart';
 import '../../services/user_session.dart';
 import '../onboarding/condition_selection_screen.dart';
+import '../../widgets/auth_wrapper.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -502,6 +503,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (confirmed == true) {
       UserSession.clear(); // Clear cache on logout
       await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const AuthWrapper()),
+          (route) => false,
+        );
+      }
     }
   }
 
