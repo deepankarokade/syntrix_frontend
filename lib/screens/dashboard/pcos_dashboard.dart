@@ -164,13 +164,28 @@ class PCOSDashboard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        nextPeriodDays != null ? '$nextPeriodDays Days' : '-- Days',
+                        nextPeriodDays != null
+                            ? (nextPeriodDays! < 0
+                                ? 'Late by ${-nextPeriodDays!} days'
+                                : '$nextPeriodDays Days')
+                            : '-- Days',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                         ),
                       ),
+                      if (nextPeriodDateStr != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Est. $nextPeriodDateStr',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(width: 8),
