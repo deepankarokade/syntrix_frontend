@@ -731,6 +731,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _confirmDeleteReport(docId!),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFECEC),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 16,
+                      color: Color(0xFFB5616A),
+                    ),
+                  ),
+                ),
             ],
           ),
 
@@ -986,6 +1002,130 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  Future<void> _confirmDeleteLog(String timeSlot) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Log?',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+        content: Text(
+          'Are you sure you want to delete the $timeSlot log for this day? This cannot be undone.',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF7A8FA6)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFF7A8FA6))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB5616A),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && _selectedDate != null) {
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid == null) return;
+        final dateStr =
+            '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+        final docId = '${dateStr}_$timeSlot';
+        await FirebaseFirestore.instance
+            .collection('logs')
+            .doc(uid)
+            .collection('daily_entries')
+            .doc(docId)
+            .delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Log deleted'),
+              backgroundColor: Color(0xFF2E7D6B),
+            ),
+          );
+          _fetchDayDetails(_selectedDate!);
+          _fetchMonthLogs();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting log: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteReport(String docId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Report?',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+        content: const Text(
+          'Are you sure you want to delete this report? This cannot be undone.',
+          style: TextStyle(fontSize: 14, color: Color(0xFF7A8FA6)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: Color(0xFF7A8FA6))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB5616A),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid == null) return;
+        await FirebaseFirestore.instance
+            .collection('reports')
+            .doc(uid)
+            .collection('user_reports')
+            .doc(docId)
+            .delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Report deleted'),
+              backgroundColor: Color(0xFF2E7D6B),
+            ),
+          );
+          if (_selectedDate != null) _fetchDayDetails(_selectedDate!);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting report: $e')),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildEmptyState([
     String message = 'No logs for this day',
     IconData icon = Icons.event_note_rounded,
@@ -1089,6 +1229,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       Icons.edit_outlined,
                       size: 16,
                       color: const Color(0xFF1E5BB1).withOpacity(0.6),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => _confirmDeleteLog(timeSlot),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      size: 16,
+                      color: const Color(0xFFB5616A).withOpacity(0.7),
                     ),
                   ),
                 ],

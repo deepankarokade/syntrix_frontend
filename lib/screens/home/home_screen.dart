@@ -414,16 +414,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  _nextPeriodDays != null ? '$_nextPeriodDays Days\\nEst. $_nextPeriodDateStr' : '16 Days\\nEst. --',
+                                  _nextPeriodDays != null
+                                      ? (_nextPeriodDays! < 0
+                                          ? 'Late by ${-_nextPeriodDays!} days'
+                                          : '$_nextPeriodDays Days')
+                                      : '-- Days',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white,
                                     height: 1.3,
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
+                                if (_nextPeriodDateStr != null && _nextPeriodDateStr!.isNotEmpty)
+                                  Text(
+                                    'Est. $_nextPeriodDateStr',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),

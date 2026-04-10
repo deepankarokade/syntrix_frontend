@@ -50,19 +50,23 @@ class CyclePredictionService {
           .limit(180)
           .get();
 
-      List<DateTime> periodDays = [];
+      // Only trust explicit isOnPeriod==true — NOT periodPhase field
+      // (periodPhase is user-entered and unreliable for cycle calculations)
+      Map<String, bool> periodDayMap = {};
       for (var doc in snapshot.docs) {
         var data = doc.data();
-        if (data['isOnPeriod'] == true || data['periodPhase'] == 'Menstrual') {
+        if (data['isOnPeriod'] == true) {
           try {
             String dateStr = doc.id.split('_').first;
-            DateTime logDate = DateTime.parse(dateStr);
-            periodDays.add(DateTime(logDate.year, logDate.month, logDate.day));
-          } catch (e) {
-            // Ignore malformed
-          }
+            DateTime.parse(dateStr); // validate format
+            periodDayMap[dateStr] = true; // deduplicate multiple logs per day
+          } catch (e) { /* ignore malformed */ }
         }
       }
+      List<DateTime> periodDays = periodDayMap.keys.map((s) {
+        final d = DateTime.parse(s);
+        return DateTime(d.year, d.month, d.day);
+      }).toList();
 
       return calculateFromPeriodDays(periodDays);
     } catch (e) {
@@ -76,21 +80,28 @@ class CyclePredictionService {
 
     // Sort ascending for chronological processing
     periodDays.sort((a, b) => a.compareTo(b));
-    
-    List<List<DateTime>> blocks = [];
+
+    // --- Build consecutive-day blocks ---
+    List<List<DateTime>> allBlocks = [];
     List<DateTime> currentBlock = [periodDays.first];
 
     for (int i = 1; i < periodDays.length; i++) {
-        final current = periodDays[i];
-        final previous = currentBlock.last;
-        if (current.difference(previous).inDays.abs() == 1) {
-          currentBlock.add(current);
-        } else {
-          blocks.add(currentBlock);
-          currentBlock = [current];
-        }
+      final current = periodDays[i];
+      final previous = currentBlock.last;
+      if (current.difference(previous).inDays.abs() <= 1) {
+        currentBlock.add(current);
+      } else {
+        allBlocks.add(currentBlock);
+        currentBlock = [current];
+      }
     }
-    blocks.add(currentBlock);
+    allBlocks.add(currentBlock);
+
+    // Use all blocks — single-day logs are valid period markers (user may only log Day 1)
+    final blocks = allBlocks;
+
+    // If no blocks at all, fall back to empty
+    if (blocks.isEmpty) return CycleData.empty();
 
     List<DateTime> startDates = [];
     List<int> blockLengths = [];
@@ -98,6 +109,9 @@ class CyclePredictionService {
       startDates.add(b.first);
       blockLengths.add(b.length);
     }
+
+    print('CyclePrediction: found ${blocks.length} valid period blocks');
+    print('CyclePrediction: start dates = ${startDates.map((d) => "${d.year}-${d.month}-${d.day}").toList()}');
 
     // Averages
     int averagePeriodLength = 5;
@@ -119,7 +133,7 @@ class CyclePredictionService {
       List<int> lengths = [];
       for (int i = startDates.length - 1; i > 0 && count < 3; i--) {
         int diff = startDates[i].difference(startDates[i - 1]).inDays;
-        if (diff > 15 && diff < 90) { // Valid cycle bounds
+        if (diff > 15 && diff < 90) {
           sum += diff;
           lengths.add(diff);
           count++;
@@ -130,44 +144,39 @@ class CyclePredictionService {
       }
 
       if (lengths.length >= 2) {
-        int maxDiff = lengths.reduce((curr, next) => curr > next ? curr : next);
-        int minDiff = lengths.reduce((curr, next) => curr < next ? curr : next);
-        if (maxDiff - minDiff > 8) {
-          isIrregular = true;
-        }
+        int maxDiff = lengths.reduce((a, b) => a > b ? a : b);
+        int minDiff = lengths.reduce((a, b) => a < b ? a : b);
+        if (maxDiff - minDiff > 8) isIrregular = true;
       }
-      if (averageCycleLength > 35 || averageCycleLength < 21) {
-        isIrregular = true;
-      }
+      if (averageCycleLength > 35 || averageCycleLength < 21) isIrregular = true;
     }
 
     DateTime lastStartDate = startDates.last;
     final now = DateTime.now();
     final strippedNow = DateTime(now.year, now.month, now.day);
-    
+
     int cycleDay = strippedNow.difference(lastStartDate).inDays + 1;
-    if (cycleDay <= 0) cycleDay = 1; 
+    // If cycleDay exceeds averageCycleLength, the next period is overdue — cap at averageCycleLength
+    if (cycleDay < 1) cycleDay = 1;
+    if (cycleDay > averageCycleLength) cycleDay = averageCycleLength;
 
     // Future prediction
     DateTime nextPeriodDate = lastStartDate.add(Duration(days: averageCycleLength));
     int daysToNextPeriod = nextPeriodDate.difference(strippedNow).inDays;
 
-    // Phase Calculation Enforced Exact Match from Specs
-    String phaseName = "Tracking";
+    // Phase — always math-based from cycleDay
+    String phaseName;
     if (cycleDay >= 1 && cycleDay <= 5) {
       phaseName = "Menstrual Phase";
     } else if (cycleDay >= 6 && cycleDay <= 13) {
       phaseName = "Follicular Phase";
     } else if (cycleDay == 14) {
       phaseName = "Ovulation Phase";
-    } else if (cycleDay >= 15) {
+    } else {
       phaseName = "Luteal Phase";
     }
 
-    // Override if currently actively logging period
-    if (blocks.last.contains(strippedNow)) {
-      phaseName = "Menstrual Phase";
-    }
+    print('CyclePrediction: lastStart=${lastStartDate.year}-${lastStartDate.month}-${lastStartDate.day}, cycleDay=$cycleDay, avgCycle=$averageCycleLength, phase=$phaseName, daysToNext=$daysToNextPeriod');
 
     return CycleData(
       cycleDay: cycleDay,
