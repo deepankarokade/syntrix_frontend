@@ -498,7 +498,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             color: Color(0xFF1A2B3C),
           ),
         ),
-        if (!_dayDetails.isEmpty)
+        if (_dayDetails.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(

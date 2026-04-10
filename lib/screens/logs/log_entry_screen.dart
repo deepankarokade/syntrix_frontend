@@ -69,8 +69,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
       _selectedPhase = data['periodPhase'];
       _selectedMood = data['mood'];
       if (data['weight'] != null) _weightCtrl.text = data['weight'].toString();
-      if (data['bloodSugar'] != null)
+      if (data['bloodSugar'] != null) {
         _bloodSugarCtrl.text = data['bloodSugar'].toString();
+      }
       _sugarContext = data['sugarContext'] ?? 'Fasting';
       _selectedSleep = data['sleep'] ?? '7h';
       _selectedActivity = data['activity'] ?? 'Medium';
@@ -207,8 +208,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loadingProfile)
+    if (_loadingProfile) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
@@ -629,10 +631,11 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
     return GestureDetector(
       onTap: () {
         setState(() {
-          if (isSelected)
+          if (isSelected) {
             _selectedSymptoms.remove(label);
-          else
+          } else {
             _selectedSymptoms[label] = 'Mild';
+          }
         });
       },
       child: Column(

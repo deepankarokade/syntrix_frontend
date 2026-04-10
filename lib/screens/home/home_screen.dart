@@ -8,6 +8,8 @@ import '../logs/log_entry_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import '../../services/user_session.dart';
+import '../chatbot/chatbot_screen.dart';
+import '../diet/diet_planner_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -459,6 +461,30 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (index is int && mounted) {
                           setState(() => _currentTab = index);
                         }
+                      },
+                    ),
+                    _quickAction(
+                      icon: Icons.chat_bubble_outline,
+                      label: 'AI Chat',
+                      color: const Color(0xFF3A6EA8),
+                      bgColor: const Color(0xFFE8F0F8),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+                        );
+                      },
+                    ),
+                    _quickAction(
+                      icon: Icons.restaurant_menu,
+                      label: 'Diet Plan',
+                      color: const Color(0xFFD68A3D),
+                      bgColor: const Color(0xFFFDF3E9),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const DietPlannerScreen()),
+                        );
                       },
                     ),
                   ],

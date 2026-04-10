@@ -318,14 +318,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _infoTile(
                       Icons.monitor_weight_outlined,
                       'Weight',
-                      '${_weight} kg',
+                      '$_weight kg',
                       onTap: () => _editNumber('Weight', 'weight', _weight!),
                     ),
                     _divider(),
                     _infoTile(
                       Icons.height_outlined,
                       'Height',
-                      '${_height} cm',
+                      '$_height cm',
                       onTap: () => _editNumber('Height', 'height', _height!),
                     ),
                     _divider(),
