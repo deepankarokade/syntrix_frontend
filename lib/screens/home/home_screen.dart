@@ -374,14 +374,17 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
 
                 // ── Top bar ──────────────────────────────────────────
                 Row(
-                  // mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Serene Cycle',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF2E4A6B),
+                    Expanded(
+                      child: Text(
+                        'Serene Cycle',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2E4A6B),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   ],
@@ -410,12 +413,16 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      _conditionLabel,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF7A8FA6),
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        _conditionLabel,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF7A8FA6),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   ],

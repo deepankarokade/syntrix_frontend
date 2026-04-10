@@ -89,15 +89,19 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
         // ── Top bar ──────────────────────────────────────────
         Row(
           children: [
-            Text(
-              'Serene – ${widget.conditionLabel}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF2E4A6B),
+            Expanded(
+              child: Text(
+                'Serene – ${widget.conditionLabel}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2E4A6B),
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             TextButton.icon(
               onPressed: () {
                 Navigator.of(context).push(

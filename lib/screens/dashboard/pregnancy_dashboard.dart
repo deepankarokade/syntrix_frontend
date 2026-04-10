@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../insights/pregnancy_insights_screen.dart';
 import '../onboarding/condition_selection_screen.dart';
@@ -30,6 +31,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
   String conditionLabel = "Pregnancy Care";
   String userName = "User";
   String trimester = "";
+  int _pregnancyWeek = 20; // Default fallback
 
   @override
   void initState() {
@@ -53,10 +55,14 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
       savedTrimester = prefs.getString('selectedTrimester');
     }
 
+    // Load pregnancy week with a robust default fallback of 1
+    final int savedWeek = (prefs.getInt('pregnancyWeek') ?? 1).clamp(1, 40);
+
     if (mounted) {
       setState(() {
         if (savedWeight != null) _localWeight = savedWeight;
         if (savedTrimester != null) trimester = savedTrimester;
+        _pregnancyWeek = savedWeek;
       });
     }
   }
@@ -91,7 +97,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
             ),
             IconButton(
               onPressed: () {},
-              icon: const Icon(Icons.settings, color: Color(0xFF2E4A6B)),
+              icon: const Icon(Icons.settings, color: Color(0xFF2E4A6B), size: 20),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -263,89 +269,156 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
               babyIcon = '🍉';
             }
 
+            // Due Date & Progress Calculations (Permanently fixed null safety issues)
+            final int currentWeek = _pregnancyWeek;
+            final int week = currentWeek.clamp(1, 40);
+            final int remainingWeeks = (40 - week).clamp(0, 40);
+            final int remainingDays = remainingWeeks * 7;
+            
+            final DateTime dueDate = DateTime.now().add(Duration(days: remainingDays));
+            final double progress = (week / 40.0).clamp(0.0, 1.0);
+            final String formattedDueDate = DateFormat('dd MMMM yyyy').format(dueDate);
+
             return Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: const Color(0xFFF4F8FB),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF4AC2CD),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        babyIcon,
-                        style: const TextStyle(fontSize: 40),
+                  Row(
+                    children: [
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF4AC2CD),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            babyIcon,
+                            style: const TextStyle(fontSize: 35),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Your Baby's Size",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A2B3C),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF7A8FA6),
-                            ),
-                            children: [
-                              const TextSpan(text: 'Baby is as big as a '),
-                              TextSpan(
-                                text: babySize,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF1A2B3C),
-                                ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Your Baby's Size",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A2B3C),
                               ),
-                              TextSpan(text: ' ($babyLength).'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: Colors.red.withValues(alpha: 0.2),
                             ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'VITALITY PHASE',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFFB5616A),
+                            const SizedBox(height: 4),
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF7A8FA6),
+                                ),
+                                children: [
+                                  const TextSpan(text: 'Baby is as big as a '),
+                                  TextSpan(
+                                    text: babySize,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF1A2B3C),
+                                    ),
+                                  ),
+                                  TextSpan(text: ' ($babyLength).'),
+                                ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const Icon(
-                    Icons.face_retouching_natural,
-                    color: Colors.grey,
-                    size: 40,
+                  const SizedBox(height: 20),
+                  const Divider(height: 1, color: Colors.black12),
+                  const SizedBox(height: 16),
+                  
+                  // Due Date Info
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Expected Due Date",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF3A6EA8),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            formattedDueDate,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1A2B3C),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        "$remainingWeeks weeks left",
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFB5616A),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  
+                  // Progress Bar
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Journey progress",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Text(
+                            "${(progress * 100).toInt()}% completed",
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2E7D6B),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 8,
+                          backgroundColor: Colors.white,
+                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4AC2CD)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

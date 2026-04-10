@@ -14,7 +14,7 @@ class ConditionSelectionScreen extends StatefulWidget {
 
 class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
   // Possible values: 'pcos', 'pregnant', 'menopause', 'none'
-  String _selectedCondition = 'pregnant';
+  String _selectedCondition = 'none';
   String _selectedTrimester = '1st Trimester (Weeks 1–12)';
   final _weekController = TextEditingController(text: '12'); // Default week
   final _descriptionController = TextEditingController();
@@ -34,8 +34,8 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
       label: 'Pregnancy',
       subtitle: null,
       iconData: Icons.child_friendly_outlined,
-      iconBg: Color(0xFFFFE8E8),
-      iconColor: Color(0xFFB5616A),
+      iconBg: Color(0xFFDDE8F5),
+      iconColor: Color(0xFF2E4A6B),
     ),
     _ConditionOption(
       value: 'menopause',
