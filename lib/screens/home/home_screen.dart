@@ -10,7 +10,7 @@ import '../logs/log_entry_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import '../../services/user_session.dart';
-import '../../services/ai_service.dart';
+import '../../services/cycle_prediction_service.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
 import '../dashboard/pcos_dashboard.dart';
@@ -175,46 +175,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchCycleData(String uid) async {
     try {
-      final entriesCol = FirebaseFirestore.instance
-          .collection('logs')
-          .doc(uid)
-          .collection('daily_entries');
-
-      final snapshot = await entriesCol
-          .orderBy('timestamp', descending: true)
-          .limit(30)
-          .get();
-      DateTime? lastPeriodStartDate;
-      bool currentlyOnPeriod = false;
-      List<DateTime> periodDates = [];
-
-      if (snapshot.docs.isNotEmpty) {
-        // Check current status from the most recent log
-        final mostRecent = snapshot.docs.first.data();
-        if (mostRecent['isOnPeriod'] == true) {
-          currentlyOnPeriod = true;
-        }
-      }
-
-      for (var doc in snapshot.docs) {
-        var data = doc.data();
-        if (data['isOnPeriod'] == true || data['periodPhase'] == 'Menstrual') {
-          String dateStr = doc.id.split('_').first;
-          DateTime logDate = DateTime.parse(dateStr);
-          periodDates.add(logDate);
-          
-          // We look for the start date of the most recent period flurry
-          if (lastPeriodStartDate == null || logDate.isAfter(lastPeriodStartDate)) {
-            lastPeriodStartDate = logDate;
-          }
-        }
-      }
-
-      if (lastPeriodStartDate != null && mounted) {
-        final now = DateTime.now();
-        final daysSinceLastPeriod = now.difference(lastPeriodStartDate).inDays;
-
+      final cycleData = await CyclePredictionService.getCycleData(uid);
+      if (mounted) {
         setState(() {
+<<<<<<< Updated upstream
           _cycleDay = daysSinceLastPeriod + 1;
           int cycleLength = _lifeStage == 'pcos' ? 35 : (_isIrregular ? 32 : 28);
           _nextPeriodDays = cycleLength - _cycleDay!;
@@ -231,69 +195,18 @@ class _HomeScreenState extends State<HomeScreen> {
             _phaseName = 'Follicular Phase';
           } else if (_cycleDay! == 14) {
             _phaseName = 'Ovulation';
+=======
+          _cycleDay = cycleData.cycleDay;
+          if (cycleData.daysToNextPeriod < 0) {
+            _nextPeriodDays = 0; // Late
+>>>>>>> Stashed changes
           } else {
-            _phaseName = 'Luteal Phase';
+            _nextPeriodDays = cycleData.daysToNextPeriod;
           }
-
-          if (_cycleDay! > 35) {
-            _isIrregular = true;
-          } else {
-            _isIrregular = false;
-          }
+          _nextPeriodDateStr = DateFormat('MMM dd, yyyy').format(cycleData.nextPeriodDate);
+          _phaseName = cycleData.phaseName;
+          _isIrregular = cycleData.isIrregular;
         });
-
-        // Add AI prediction
-        if (periodDates.isNotEmpty) {
-          periodDates.sort();
-          List<String> startDates = [];
-          DateTime? lastStart;
-          for (var d in periodDates) {
-            if (lastStart == null || d.difference(lastStart).inDays > 10) {
-              startDates.add("\${d.year}-\${d.month.toString().padLeft(2, '0')}-\${d.day.toString().padLeft(2, '0')}");
-              lastStart = d;
-            }
-          }
-
-          String todayStr = "\${now.year}-\${now.month.toString().padLeft(2, '0')}-\${now.day.toString().padLeft(2, '0')}";
-
-          String aiPrompt = '''
-You are a Medical AI calculating the menstrual cycle.
-Past period start dates: \${startDates.join(', ')}
-Today's date: \$todayStr
-
-Please analyze these dates, calculate the cycle length based on patterns, predict the next cycle start date, and determine the current cycle phase. If irregularity exists, set isIrregular to true.
-Respond ONLY with a valid JSON matching exactly this structure, no markdown, no extra text:
-{
-  "cycleDay": <int>,
-  "nextPeriodDays": <int>,
-  "phaseName": "<string>",
-  "isIrregular": <bool>,
-  "predictedNextPeriodDate": "<YYYY-MM-DD>"
-}
-''';
-
-          try {
-            final aiResponse = await AiService.sendMessage(
-              messages: [{"role": "user", "content": aiPrompt}],
-            );
-
-            if (aiResponse != null && mounted) {
-              String cleanJSON = aiResponse.replaceAll('```json', '').replaceAll('```', '').trim();
-              Map<String, dynamic> aiData = jsonDecode(cleanJSON);
-
-              setState(() {
-                _cycleDay = aiData['cycleDay'];
-                _nextPeriodDays = aiData['nextPeriodDays'];
-                _phaseName = aiData['phaseName'] ?? _phaseName;
-                _isIrregular = aiData['isIrregular'] ?? _isIrregular;
-                DateTime aiNextDate = DateTime.parse(aiData['predictedNextPeriodDate']);
-                _nextPeriodDateStr = DateFormat('MMM dd, yyyy').format(aiNextDate);
-              });
-            }
-          } catch (e) {
-            print("AI cycle prediction error: \$e");
-          }
-        }
       }
     } catch (e) {
       print('Home: Error loading cycle data: $e');
@@ -350,7 +263,6 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
         currentBody = const ProfileScreen();
         break;
       default:
-        // Main Home Tab
         if (_lifeStage == 'pcos') {
           currentBody = PCOSDashboard(
             userName: _userName,
@@ -358,9 +270,14 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
             weight: _weight,
             cycleDay: _cycleDay,
             nextPeriodDays: _nextPeriodDays,
+<<<<<<< Updated upstream
             nextPeriodDateStr: _nextPeriodDateStr,
             phaseName: _phaseName,
             todaySteps: _todaySteps,
+=======
+            phaseName: _phaseName,
+            isIrregular: _isIrregular,
+>>>>>>> Stashed changes
             onTabChange: (index) => setState(() => _currentTab = index),
           );
         } else if (_lifeStage == 'pregnant') {

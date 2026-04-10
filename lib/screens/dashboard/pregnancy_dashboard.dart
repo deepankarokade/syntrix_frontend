@@ -652,25 +652,28 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
       child: Container(
         height: 90,
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey.withValues(alpha: 0.2),
-            width: 1,
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.85),
+              color,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 6),
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(height: 8),
             Text(
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF3D5166),
-                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
                 height: 1.2,
               ),
             ),

@@ -9,6 +9,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'cycle_prediction_service.dart';
 import 'pcos_predictor.dart';
 
 class HealthDataService {
@@ -125,27 +126,12 @@ class HealthDataService {
         latestLog['activity'] != null && latestLog['activity'] != 'None',
       );
 
-      // Cycle type from most recent log
-      final cycleType     = _encodeCycle(latestLog['cycleType'] ??
-          (latestLog['isOnPeriod'] == true ? 'irregular' : 'regular'));
+      // ── Step 2.5: Fetch Mathematical Cycle Data ────────────────────────
+      final cycleData = await CyclePredictionService.getCycleData(uid);
+      final cycleType = cycleData.isIrregular ? 4.0 : 2.0;
 
-      // Cycle length: count consecutive period days in logs
-      double cycleLengthDays = 5.0;
-      if (entries.isNotEmpty) {
-        int consecutivePeriodDays = 0;
-        for (final entry in entries) {
-          if (entry['isOnPeriod'] == true) {
-            consecutivePeriodDays++;
-          } else {
-            break; // stop at first non-period day
-          }
-        }
-        if (consecutivePeriodDays > 0) {
-          cycleLengthDays = consecutivePeriodDays.toDouble();
-        } else if (latestLog['cycleLength'] != null) {
-          cycleLengthDays = _toDouble(latestLog['cycleLength']) ?? 5.0;
-        }
-      }
+      // Ensure the model gets the true overall Cycle Length (e.g. 28 days), not just the 5 days of bleeding
+      final cycleLengthDays = cycleData.averageCycleLength.toDouble();
 
       // Waist-to-hip ratio from log (override default if present)
       double whr = _defaultWhr;
