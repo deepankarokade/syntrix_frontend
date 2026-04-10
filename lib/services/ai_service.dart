@@ -10,6 +10,9 @@ class AiService {
       dotenv.env['OPENROUTER_API_URL'] ??
       'https://openrouter.ai/api/v1/chat/completions';
 
+  static String get _groqApiKey => dotenv.env['GROQ_API_KEY'] ?? '';
+  static const String _groqApiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+
   static const String chatSystemPrompt = """
 You are a HIGH-PRECISION Women's Health AI Assistant.
 
@@ -78,10 +81,11 @@ OUTPUT FORMAT:
 """;
 
   static const List<String> _freeModels = [
-    "qwen/qwen-2.5-72b-instruct:free"
+    "google/gemma-4-31b-it:free",
+    "openrouter/free"
   ];
 
-  /// Send query to OpenRouter AI with automatic model fallback
+  /// Send query to OpenRouter AI with automatic Groq fallback
   static Future<String?> sendMessage({
     required List<Map<String, String>> messages,
     bool isDiet = false,
@@ -90,7 +94,7 @@ OUTPUT FORMAT:
       try {
         final model = _freeModels[i];
         print(
-          "AI: Trying model $model (attempt ${i + 1}/${_freeModels.length})",
+          "AI: Trying OpenRouter model $model (attempt ${i + 1}/${_freeModels.length})",
         );
 
         final payload = {
@@ -119,26 +123,48 @@ OUTPUT FORMAT:
           }
         }
 
-        // If rate-limited (429) or other errors, log and try next model
-        if (response.statusCode != 200) {
-          print(
-            "AI: Failed on $model (Status ${response.statusCode}), trying next...",
-          );
-          if (response.statusCode == 429) {
-            await Future.delayed(const Duration(seconds: 1));
-          }
-          if (i == _freeModels.length - 1) {
-            return "Error: Unable to fetch response (Status ${response.statusCode})";
-          }
-          continue;
-        }
+        print("AI: Failed on $model (Status ${response.statusCode}), trying next...");
       } catch (e) {
-        print("AI: Error with model ${_freeModels[i]}: $e");
-        if (i == _freeModels.length - 1) return "Error: $e";
-        continue;
+        print("AI: Error with OpenRouter model ${_freeModels[i]}: $e");
       }
     }
-    return "Error: All AI models are currently busy. Please try again in a minute.";
+
+    if (_groqApiKey.isNotEmpty) {
+      print("AI: OpenRouter models failed. Falling back to Groq API...");
+      try {
+        final payload = {
+          "model": "llama-3.1-8b-instant",
+          "messages": messages,
+          "temperature": 0.3,
+          "max_tokens": isDiet ? 2000 : 800,
+        };
+
+        final response = await http.post(
+          Uri.parse(_groqApiUrl),
+          headers: {
+            "Authorization": "Bearer $_groqApiKey",
+            "Content-Type": "application/json",
+          },
+          body: jsonEncode(payload),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data["choices"] != null && data["choices"].isNotEmpty) {
+            print("AI: Success with Groq fallback.");
+            return data["choices"][0]["message"]["content"];
+          }
+        } else {
+          print("AI: Groq failed with status ${response.statusCode}");
+        }
+      } catch (e) {
+        print("AI: Groq fallback Error: $e");
+      }
+    } else {
+      print("AI: No Groq API Key found in .env, skipping fallback.");
+    }
+
+    return "Error: All AI endpoints are currently busy or unauthorized. Please check your API keys or try again later.";
   }
 
   /// Fetches last 7 days of logs + profile to build a grounding context for AI
