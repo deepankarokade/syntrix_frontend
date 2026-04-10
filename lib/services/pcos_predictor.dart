@@ -1,7 +1,8 @@
 // =============================================================================
 // PCOS Risk Prediction — Flutter TFLite Integration
 // =============================================================================
-import 'package:tflite_flutter/tflite_flutter.dart';
+import 'tflite_stub.dart' if (dart.library.io) 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Feature lists (must match Python training order exactly)
@@ -110,6 +111,13 @@ class PcosPredictor {
   bool _initialized = false;
 
   Future<void> initialize() async {
+    // TODO: TEMPORARY - Remove after development. Skip ML on Web to fix Chrome preview.
+    if (kIsWeb) {
+      print('PcosPredictor: Web environment detected. Skipping TFLite model load.');
+      _initialized = true;
+      return;
+    }
+
     final options = InterpreterOptions();
     _basicInterpreter = await Interpreter.fromAsset(
       'assets/models/basic_model.tflite',
@@ -132,6 +140,18 @@ class PcosPredictor {
   /// [input] keys are feature names; values are already preprocessed doubles.
   PcosResult predict(Map<String, double> input, {int topN = 5}) {
     assert(_initialized, 'Call initialize() before predict()');
+
+    // TODO: TEMPORARY - Remove after development. Return mock result on Web.
+    if (kIsWeb) {
+      print('PcosPredictor: Returning mock result for Web preview.');
+      return const PcosResult(
+        riskScore: 0.25,
+        riskPercentage: 25,
+        category: RiskCategory.low,
+        modelUsed: 'mock_web',
+        topFeatures: [],
+      );
+    }
 
     // Decide which model to use based on whether hormonal markers are present
     final useAdvanced = hormonalFeatures.any(
