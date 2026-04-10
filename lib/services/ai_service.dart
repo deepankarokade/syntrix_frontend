@@ -10,6 +10,7 @@ You are a HIGH-PRECISION Women's Health AI Assistant.
 
 STRICT RULES:
 - NO hallucinations
+- If the user asks a question NOT related to health and women's well-being, you must politely decline and state that you only answer questions related to health.
 - If unsure → say "I cannot verify this medically"
 - Always include clinical parameters (TSH, HbA1c, etc.)
 - Use evidence-based medicine only
@@ -83,7 +84,7 @@ OUTPUT FORMAT:
   }) async {
     try {
       final payload = {
-        "model": "qwen/qwen-2.5-72b-instruct",
+        "model": "qwen/qwen3.6-plus",
         "messages": messages,
         "temperature": 0.2,
         "max_tokens": 1500,

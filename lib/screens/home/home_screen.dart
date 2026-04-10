@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'dart:convert';
 import '../insights/insights_screen.dart';
 import '../logs/calendar_screen.dart';
 import '../report/reports_screen.dart';
@@ -8,6 +10,7 @@ import '../logs/log_entry_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/custom_bottom_nav.dart';
 import '../../services/user_session.dart';
+import '../../services/ai_service.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
 
@@ -24,6 +27,12 @@ class _HomeScreenState extends State<HomeScreen> {
   String _conditionLabel = 'General Tracking';
   double? _weight;
   bool _loadingUser = true;
+
+  int? _cycleDay;
+  int? _nextPeriodDays;
+  String? _nextPeriodDateStr;
+  String _phaseName = 'Follicular Phase';
+  bool _isIrregular = false;
 
   // Condition value → display tag map
   static const _conditionTags = {
@@ -115,6 +124,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _weight = weightVal;
         });
       }
+      
+      await _fetchCycleData(user.uid);
     } catch (e) {
       print('Home: Error loading user data: $e');
     } finally {
@@ -123,6 +134,167 @@ class _HomeScreenState extends State<HomeScreen> {
         print('Home: Loading complete, user: $_userName');
       }
     }
+  }
+
+  Future<void> _fetchCycleData(String uid) async {
+    try {
+      final entriesCol = FirebaseFirestore.instance
+          .collection('logs')
+          .doc(uid)
+          .collection('daily_entries');
+
+      final snapshot = await entriesCol
+          .orderBy('timestamp', descending: true)
+          .limit(30)
+          .get();
+      DateTime? lastPeriodStartDate;
+      bool currentlyOnPeriod = false;
+      List<DateTime> periodDates = [];
+
+      if (snapshot.docs.isNotEmpty) {
+        // Check current status from the most recent log
+        final mostRecent = snapshot.docs.first.data();
+        if (mostRecent['isOnPeriod'] == true) {
+          currentlyOnPeriod = true;
+        }
+      }
+
+      for (var doc in snapshot.docs) {
+        var data = doc.data();
+        if (data['isOnPeriod'] == true || data['periodPhase'] == 'Menstrual') {
+          String dateStr = doc.id.split('_').first;
+          DateTime logDate = DateTime.parse(dateStr);
+          periodDates.add(logDate);
+          
+          // We look for the start date of the most recent period flurry
+          if (lastPeriodStartDate == null || logDate.isAfter(lastPeriodStartDate)) {
+            lastPeriodStartDate = logDate;
+          }
+        }
+      }
+
+      if (lastPeriodStartDate != null && mounted) {
+        final now = DateTime.now();
+        final daysSinceLastPeriod = now.difference(lastPeriodStartDate).inDays;
+
+        setState(() {
+          _cycleDay = daysSinceLastPeriod + 1;
+          int cycleLength = 28;
+          _nextPeriodDays = cycleLength - _cycleDay!;
+          if (_nextPeriodDays! < 0) _nextPeriodDays = 0;
+
+          DateTime nextPeriodDate = now.add(Duration(days: _nextPeriodDays!));
+          _nextPeriodDateStr = DateFormat('MMM dd, yyyy').format(nextPeriodDate);
+
+          if (currentlyOnPeriod) {
+            _phaseName = 'Menstrual Phase';
+          } else if (_cycleDay! <= 5) {
+            _phaseName = 'Menstrual Phase';
+          } else if (_cycleDay! <= 13) {
+            _phaseName = 'Follicular Phase';
+          } else if (_cycleDay! == 14) {
+            _phaseName = 'Ovulation';
+          } else {
+            _phaseName = 'Luteal Phase';
+          }
+
+          if (_cycleDay! > 35) {
+            _isIrregular = true;
+          } else {
+            _isIrregular = false;
+          }
+        });
+
+        // Add AI prediction
+        if (periodDates.isNotEmpty) {
+          periodDates.sort();
+          List<String> startDates = [];
+          DateTime? lastStart;
+          for (var d in periodDates) {
+            if (lastStart == null || d.difference(lastStart).inDays > 10) {
+              startDates.add("\${d.year}-\${d.month.toString().padLeft(2, '0')}-\${d.day.toString().padLeft(2, '0')}");
+              lastStart = d;
+            }
+          }
+
+          String todayStr = "\${now.year}-\${now.month.toString().padLeft(2, '0')}-\${now.day.toString().padLeft(2, '0')}";
+
+          String aiPrompt = '''
+You are a Medical AI calculating the menstrual cycle.
+Past period start dates: \${startDates.join(', ')}
+Today's date: \$todayStr
+
+Please analyze these dates, calculate the cycle length based on patterns, predict the next cycle start date, and determine the current cycle phase. If irregularity exists, set isIrregular to true.
+Respond ONLY with a valid JSON matching exactly this structure, no markdown, no extra text:
+{
+  "cycleDay": <int>,
+  "nextPeriodDays": <int>,
+  "phaseName": "<string>",
+  "isIrregular": <bool>,
+  "predictedNextPeriodDate": "<YYYY-MM-DD>"
+}
+''';
+
+          try {
+            final aiResponse = await AiService.sendMessage(
+              messages: [{"role": "user", "content": aiPrompt}],
+            );
+
+            if (aiResponse != null && mounted) {
+              String cleanJSON = aiResponse.replaceAll('```json', '').replaceAll('```', '').trim();
+              Map<String, dynamic> aiData = jsonDecode(cleanJSON);
+
+              setState(() {
+                _cycleDay = aiData['cycleDay'];
+                _nextPeriodDays = aiData['nextPeriodDays'];
+                _phaseName = aiData['phaseName'] ?? _phaseName;
+                _isIrregular = aiData['isIrregular'] ?? _isIrregular;
+                DateTime aiNextDate = DateTime.parse(aiData['predictedNextPeriodDate']);
+                _nextPeriodDateStr = DateFormat('MMM dd, yyyy').format(aiNextDate);
+              });
+            }
+          } catch (e) {
+            print("AI cycle prediction error: \$e");
+          }
+        }
+      }
+    } catch (e) {
+      print('Home: Error loading cycle data: $e');
+    }
+  }
+
+  LinearGradient _getPhaseGradient() {
+    if (_phaseName.contains('Menstrual')) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFB5616A), Color(0xFF8E4A50)],
+      );
+    } else if (_phaseName.contains('Ovulation')) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF88C0D0), Color(0xFF81A1C1)],
+      );
+    } else if (_phaseName.contains('Luteal')) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFD08770), Color(0xFFA36D5A)],
+      );
+    } else if (_phaseName.contains('Follicular')) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFA3BE8C), Color(0xFF88C0CB)],
+      );
+    }
+    // Default
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF3A6EA8), Color(0xFF2E4A6B)],
+    );
   }
 
   @override
@@ -224,14 +396,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(22),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF3A6EA8), Color(0xFF2E4A6B)],
-                    ),
+                    gradient: _getPhaseGradient(),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF3A6EA8).withValues(alpha: 0.3),
+                        color: _getPhaseGradient().colors.first.withValues(alpha: 0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -250,9 +418,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Cycle Day 12',
-                        style: TextStyle(
+                      Text(
+                        _cycleDay != null ? 'Cycle Day $_cycleDay' : 'Cycle Day 12',
+                        style: const TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -261,29 +429,35 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                'Next Period',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white60,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Next Period',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white60,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                '16 Days',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                const SizedBox(height: 2),
+                                Text(
+                                  _nextPeriodDays != null ? '$_nextPeriodDays Days\\nEst. $_nextPeriodDateStr' : '16 Days\\nEst. --',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    height: 1.3,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -293,9 +467,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Text(
-                              'Follicular Phase',
-                              style: TextStyle(
+                            child: Text(
+                              _phaseName,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -339,62 +513,63 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
 
                 // ── Insight card ──────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF0F0),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFFFD0D0),
-                      width: 1,
+                if (_isIrregular) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF0F0),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFFD0D0),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE5E5),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Color(0xFFB5616A),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Insight Detected',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1A2B3C),
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Cycle irregularity detected. This can be common with PCOS; consider tracking your cortisol levels this week.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF7A8FA6),
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFE5E5),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.warning_amber_rounded,
-                          color: Color(0xFFB5616A),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Insight Detected',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1A2B3C),
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Cycle irregularity detected. This can be common with PCOS; consider tracking your cortisol levels this week.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF7A8FA6),
-                                height: 1.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
+                ],
 
                 // ── Quick Actions ─────────────────────────────────────
                 const Text(

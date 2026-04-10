@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/ai_service.dart';
 import '../../services/user_session.dart';
 
@@ -32,13 +34,38 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> {
       _dietPlanResponse = null;
     });
 
+    final user = FirebaseAuth.instance.currentUser;
+    String latestLogInfo = "No recent logs found.";
+    if (user != null) {
+      try {
+        final logsCol = FirebaseFirestore.instance.collection('logs').doc(user.uid).collection('daily_entries');
+        final latest = await logsCol.orderBy('timestamp', descending: true).limit(1).get();
+        if (latest.docs.isNotEmpty) {
+           final data = latest.docs.first.data();
+           String phase = data['periodPhase'] ?? 'Unknown Phase';
+           String mood = data['mood'] ?? 'Not specified';
+           
+           String symptoms = 'None';
+           if (data['symptoms'] != null) {
+              symptoms = (data['symptoms'] as Map).keys.join(', ');
+           }
+           if (symptoms.isEmpty) symptoms = 'None';
+
+           latestLogInfo = "Current Phase: \$phase. Reported symptoms today: \$symptoms. General Mood: \$mood.";
+        }
+      } catch (e) {
+        print("Error fetching latest log for diet: \$e");
+      }
+    }
+
     final userData = {
-      "Age": UserSession.dob != null ? 'Calculated from ${UserSession.dob}' : 'Not provided',
+      "Age": UserSession.dob != null ? 'Calculated from \${UserSession.dob}' : 'Not provided',
       "Height": UserSession.height ?? 'Not provided',
       "Weight": UserSession.weight ?? 'Not provided',
       "Activity Level": _activityLevel,
       "Condition": UserSession.condition ?? 'General Tracking',
       "Symptoms": _symptomsController.text.trim().isEmpty ? 'None' : _symptomsController.text.trim(),
+      "Recent Health/Cycle Logs": latestLogInfo,
       "Region/Location": region,
     };
 

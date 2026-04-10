@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import '../home/home_screen.dart';
 import '../../services/user_session.dart';
 
@@ -28,6 +29,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   bool _isPeriodActive = false;
   bool _loadingProfile = true;
 
+  late DateTime _selectedLogDate;
+
   bool _isOnPeriod = false;
   String _periodDay = 'Day 1';
   String? _flowIntensity = 'Medium';
@@ -36,11 +39,14 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   String? _selectedMood;
   final TextEditingController _weightCtrl = TextEditingController();
   final TextEditingController _bloodSugarCtrl = TextEditingController();
+  final TextEditingController _waistCtrl = TextEditingController();
+  final TextEditingController _hipCtrl = TextEditingController();
   String _sugarContext = 'Fasting';
   String _selectedSleep = '7h';
   String _selectedActivity = 'Medium';
   String _selectedTime = 'Morning';
   bool _tookMedication = false;
+  bool _ateFastFood = false;
   final TextEditingController _medicationNameCtrl = TextEditingController();
 
   final List<Map<String, String>> _moods = [
@@ -54,6 +60,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedLogDate = widget.editDate ?? DateTime.now();
     _fetchUserProfile();
     if (widget.existingData != null) {
       _populateEditData();
@@ -78,6 +85,10 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
       _selectedActivity = data['activity'] ?? 'Medium';
       _tookMedication = data['medication'] != null;
       if (_tookMedication) _medicationNameCtrl.text = data['medication'];
+
+      if (data['waist'] != null) _waistCtrl.text = data['waist'].toString();
+      if (data['hip'] != null) _hipCtrl.text = data['hip'].toString();
+      _ateFastFood = data['ateFastFood'] == true;
 
       if (data['symptoms'] != null) {
         _selectedSymptoms.clear();
@@ -142,7 +153,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
     }
 
     try {
-      final now = widget.editDate ?? DateTime.now();
+      final now = _selectedLogDate;
       final dateStr =
           "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
@@ -152,21 +163,6 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
           .doc(user!.uid)
           .collection('daily_entries');
       final docId = "${dateStr}_$_selectedTime";
-
-      // Check if this time slot log already exists (only if not in edit mode for this specific slot)
-      final existingDoc = await entriesCol.doc(docId).get();
-
-      if (existingDoc.exists && widget.existingData == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'A log for $_selectedTime entry already exists for today!',
-            ),
-            backgroundColor: Colors.orange.shade700,
-          ),
-        );
-        return;
-      }
 
       await entriesCol.doc(docId).set({
         'timestamp': FieldValue.serverTimestamp(),
@@ -185,6 +181,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
         'sugarContext': _sugarContext,
         'sleep': _selectedSleep,
         'activity': _selectedActivity,
+        'waist': double.tryParse(_waistCtrl.text) ?? 0.0,
+        'hip': double.tryParse(_hipCtrl.text) ?? 0.0,
+        'ateFastFood': _ateFastFood,
         'medication': _tookMedication ? _medicationNameCtrl.text.trim() : null,
         'periodPhase': _isOnPeriod ? 'Menstrual' : _selectedPhase,
       }, SetOptions(merge: true));
@@ -250,15 +249,45 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
               const Text(
                 'Track Your Health',
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: 28,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF1A2B3C),
                   letterSpacing: -0.5,
                 ),
               ),
-              const Text(
-                'Log your daily details',
-                style: TextStyle(fontSize: 16, color: Color(0xFF7A8FA6)),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedLogDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setState(() => _selectedLogDate = picked);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F0F8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_month_outlined, color: Color(0xFF3A6EA8), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Date: " + DateFormat('MMMM dd, yyyy').format(_selectedLogDate) + " (Tap to change)",
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF3A6EA8)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
 
@@ -371,6 +400,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                   'Cramps',
                   'Mood Swings',
                   'Headache',
+                  'Facial Hair',
+                  'Hair Loss',
+                  'Skin Darkening',
                 ].map(_buildSymptomChip).toList(),
               ),
               const SizedBox(height: 32),
@@ -378,11 +410,17 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
               // ── [ MOOD ] ───────────────────────────────────────────
               _sectionHeader('MOOD'),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: _moods
-                    .map((m) => _moodIcon(m['emoji']!, m['label']!))
-                    .toList(),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: _moods.map((m) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: _moodIcon(m['emoji']!, m['label']!),
+                    );
+                  }).toList(),
+                ),
               ),
               const SizedBox(height: 32),
 
@@ -395,6 +433,30 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                 controller: _weightCtrl,
                 suffix: 'kg',
                 hint: '0.0',
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _inputCard(
+                      icon: Icons.straighten_rounded,
+                      label: 'Waist (cm)',
+                      controller: _waistCtrl,
+                      suffix: 'cm',
+                      hint: '0',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _inputCard(
+                      icon: Icons.straighten_rounded,
+                      label: 'Hip (cm)',
+                      controller: _hipCtrl,
+                      suffix: 'cm',
+                      hint: '0',
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
 
@@ -453,6 +515,25 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                     _activityIcon(Icons.directions_walk_rounded, 'Low'),
                     _activityIcon(Icons.accessibility_new_rounded, 'Medium'),
                     _activityIcon(Icons.fitness_center_rounded, 'High'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _labeledContainer(
+                label: 'Diet: Ate Fast Food?',
+                child: Row(
+                  children: [
+                    _choiceButton(
+                      'Yes',
+                      _ateFastFood,
+                      () => setState(() => _ateFastFood = true),
+                    ),
+                    const SizedBox(width: 12),
+                    _choiceButton(
+                      'No',
+                      !_ateFastFood,
+                      () => setState(() => _ateFastFood = false),
+                    ),
                   ],
                 ),
               ),

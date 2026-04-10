@@ -6,8 +6,13 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
+import 'dart:convert';
 import 'log_entry_screen.dart';
+<<<<<<< HEAD
 import '../report/reports_screen.dart';
+=======
+import '../../services/ai_service.dart';
+>>>>>>> c17f6bc22157ef04b53aefab6a65c568a69c6146
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -22,6 +27,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final user = FirebaseAuth.instance.currentUser;
   Map<String, Map<String, dynamic>> _logs = {};
   Map<String, dynamic> _dayDetails = {};
+  DateTime? _predictedNextPeriodDate;
   bool _loading = true;
   bool _loadingDetails = false;
   int _selectedTab = 0; // 0 = Logs, 1 = Reports
@@ -92,6 +98,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       final snapshot = await entriesCol.get();
       Map<String, Map<String, dynamic>> fetchedLogs = {};
+      DateTime? lastPeriodDate;
+      List<DateTime> periodDates = [];
 
       for (var doc in snapshot.docs) {
         String dateStr = doc.id.split('_').first;
@@ -100,13 +108,70 @@ class _CalendarScreenState extends State<CalendarScreen> {
             data['periodPhase'] == 'Menstrual') {
           fetchedLogs[dateStr] = data;
         }
+
+        if (data['isOnPeriod'] == true || data['periodPhase'] == 'Menstrual') {
+          DateTime logDate = DateTime.parse(dateStr);
+          periodDates.add(logDate);
+          if (lastPeriodDate == null || logDate.isAfter(lastPeriodDate)) {
+            lastPeriodDate = logDate;
+          }
+        }
+      }
+
+      DateTime? predictedDate;
+      if (lastPeriodDate != null) {
+        predictedDate = lastPeriodDate.add(const Duration(days: 28));
       }
 
       if (mounted) {
         setState(() {
           _logs = fetchedLogs;
+          _predictedNextPeriodDate = predictedDate;
           _loading = false;
         });
+      }
+
+      // Add AI prediction for calendar
+      if (periodDates.isNotEmpty) {
+        periodDates.sort();
+        List<String> startDates = [];
+        DateTime? lastStart;
+        for (var d in periodDates) {
+          if (lastStart == null || d.difference(lastStart).inDays > 10) {
+            startDates.add("\${d.year}-\${d.month.toString().padLeft(2, '0')}-\${d.day.toString().padLeft(2, '0')}");
+            lastStart = d;
+          }
+        }
+
+        final now = DateTime.now();
+        String todayStr = "\${now.year}-\${now.month.toString().padLeft(2, '0')}-\${now.day.toString().padLeft(2, '0')}";
+
+        String aiPrompt = '''
+You are a Medical AI calculating the menstrual cycle.
+Past period start dates: \${startDates.join(', ')}
+Today's date: \$todayStr
+
+Please analyze these dates, predict the next cycle start date based on patterns.
+Respond ONLY with a valid JSON matching exactly this structure, no markdown, no extra text:
+{
+  "predictedNextPeriodDate": "<YYYY-MM-DD>"
+}
+''';
+        try {
+          final aiResponse = await AiService.sendMessage(
+            messages: [{"role": "user", "content": aiPrompt}],
+          );
+          if (aiResponse != null && mounted) {
+            String cleanJSON = aiResponse.replaceAll('```json', '').replaceAll('```', '').trim();
+            Map<String, dynamic> aiData = jsonDecode(cleanJSON);
+            DateTime aiNextDate = DateTime.parse(aiData['predictedNextPeriodDate']);
+            setState(() {
+              _predictedNextPeriodDate = aiNextDate;
+            });
+          }
+        } catch(e) {
+          print("AI calendar prediction error: \$e");
+        }
       }
     } catch (e) {
       print("Error fetching month logs: $e");
@@ -395,6 +460,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final hasPeriod = log != null && log['isOnPeriod'] == true;
       final hasLogs = log != null;
 
+      bool isPredictedPeriod = false;
+      if (_predictedNextPeriodDate != null) {
+        int diff = date.difference(_predictedNextPeriodDate!).inDays;
+        // Ignore time constraints or exactly match the days spanning logic
+        if (diff >= 0 && diff < 5) {
+          isPredictedPeriod = true;
+        }
+      }
+
       dayWidgets.add(
         GestureDetector(
           onTap: isFuture ? null : () => _fetchDayDetails(date),
@@ -409,9 +483,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ? const Color(0xFF1E5BB1)
                     : (hasPeriod
                           ? const Color(0xFFFFC6C6)
-                          : (hasLogs
-                                ? const Color(0xFFECF4FF)
-                                : Colors.transparent)),
+                          : (isPredictedPeriod
+                                ? const Color(0xFFFFE5E5)
+                                : (hasLogs
+                                      ? const Color(0xFFECF4FF)
+                                      : Colors.transparent))),
                 shape: BoxShape.circle,
                 border: isToday && !isSelected
                     ? Border.all(color: const Color(0xFF1E5BB1), width: 1.5)
@@ -426,8 +502,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ? Colors.white
                             : (hasPeriod
                                   ? const Color(0xFFB5616A)
-                                  : const Color(0xFF1A1F26))),
-                  fontWeight: (isSelected || isToday || hasPeriod)
+                                  : (isPredictedPeriod
+                                        ? const Color(0xFFD98A95)
+                                        : const Color(0xFF1A1F26)))),
+                  fontWeight: (isSelected || isToday || hasPeriod || isPredictedPeriod)
                       ? FontWeight.bold
                       : FontWeight.w500,
                   fontSize: 14,
@@ -452,15 +530,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildLegend() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _legendItem(const Color(0xFFFFC6C6), 'Period'),
-        const SizedBox(width: 24),
-        _legendItem(const Color(0xFFECF4FF), 'Recorded'),
-        const SizedBox(width: 24),
-        _legendItem(const Color(0xFFFFFFFF), 'Normal', border: true),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _legendItem(const Color(0xFFFFC6C6), 'Period'),
+          const SizedBox(width: 16),
+          _legendItem(const Color(0xFFFFE5E5), 'Predicted'),
+          const SizedBox(width: 16),
+          _legendItem(const Color(0xFFECF4FF), 'Recorded'),
+          const SizedBox(width: 16),
+          _legendItem(const Color(0xFFFFFFFF), 'Normal', border: true),
+        ],
+      ),
     );
   }
 
