@@ -6,7 +6,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AiService {
   static String get _apiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
-  static String get _apiUrl => dotenv.env['OPENROUTER_API_URL'] ?? 'https://openrouter.ai/api/v1/chat/completions';
+  static String get _apiUrl =>
+      dotenv.env['OPENROUTER_API_URL'] ??
+      'https://openrouter.ai/api/v1/chat/completions';
 
   static const String chatSystemPrompt = """
 You are a HIGH-PRECISION Women's Health AI Assistant.
@@ -70,47 +72,73 @@ STRICT RULES:
 - Include calorie estimation and protein/carbs/fats reasoning.
 
 OUTPUT FORMAT:
-- Beautiful Markdown with Tables for the meal plan.
-- Clear headers and bullet points.
+- Beautiful Markdown. DO NOT use Tables (they render poorly on mobile). Use detailed bulleted/numbered lists for the meal plan.
+- Clear headers and bold text.
 - Professional medical reasoning.
 """;
 
-  /// Send query to OpenRouter AI
+  static const List<String> _freeModels = [
+    "qwen/qwen-2.5-72b-instruct:free"
+  ];
+
+  /// Send query to OpenRouter AI with automatic model fallback
   static Future<String?> sendMessage({
     required List<Map<String, String>> messages,
     bool isDiet = false,
   }) async {
-    try {
-      final payload = {
-        "model": isDiet
-            ? "google/gemma-3-27b-it:free"
-            : "google/gemma-3-27b-it:free",
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": isDiet ? 2000 : 800,
-      };
+    for (int i = 0; i < _freeModels.length; i++) {
+      try {
+        final model = _freeModels[i];
+        print(
+          "AI: Trying model $model (attempt ${i + 1}/${_freeModels.length})",
+        );
 
-      final response = await http.post(
-        Uri.parse(_apiUrl),
-        headers: {
-          "Authorization": "Bearer $_apiKey",
-          "HTTP-Referer": "http://localhost",
-          "X-Title": "Women Health AI",
-          "Content-Type": "application/json"
-        },
-        body: jsonEncode(payload),
-      );
+        final payload = {
+          "model": model,
+          "messages": messages,
+          "temperature": 0.3,
+          "max_tokens": isDiet ? 2000 : 800,
+        };
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data["choices"] != null && data["choices"].isNotEmpty) {
-          return data["choices"][0]["message"]["content"];
+        final response = await http.post(
+          Uri.parse(_apiUrl),
+          headers: {
+            "Authorization": "Bearer $_apiKey",
+            "HTTP-Referer": "http://localhost",
+            "X-Title": "Women Health AI",
+            "Content-Type": "application/json",
+          },
+          body: jsonEncode(payload),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data["choices"] != null && data["choices"].isNotEmpty) {
+            print("AI: Success with $model");
+            return data["choices"][0]["message"]["content"];
+          }
         }
+
+        // If rate-limited (429) or other errors, log and try next model
+        if (response.statusCode != 200) {
+          print(
+            "AI: Failed on $model (Status ${response.statusCode}), trying next...",
+          );
+          if (response.statusCode == 429) {
+            await Future.delayed(const Duration(seconds: 1));
+          }
+          if (i == _freeModels.length - 1) {
+            return "Error: Unable to fetch response (Status ${response.statusCode})";
+          }
+          continue;
+        }
+      } catch (e) {
+        print("AI: Error with model ${_freeModels[i]}: $e");
+        if (i == _freeModels.length - 1) return "Error: $e";
+        continue;
       }
-      return "Error: Unable to fetch response (Status ${response.statusCode})\\n${response.body}";
-    } catch (e) {
-      return "Error: $e";
     }
+    return "Error: All AI models are currently busy. Please try again in a minute.";
   }
 
   /// Fetches last 7 days of logs + profile to build a grounding context for AI
@@ -119,17 +147,23 @@ OUTPUT FORMAT:
     if (user == null) return "User not logged in.";
 
     try {
-      final profileDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final profileDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final profile = profileDoc.data() ?? {};
-      
+
       final logsCol = FirebaseFirestore.instance
           .collection('logs')
           .doc(user.uid)
           .collection('daily_entries');
-      
+
       final now = DateTime.now();
       final last7Days = await logsCol
-          .where('timestamp', isGreaterThan: now.subtract(const Duration(days: 7)))
+          .where(
+            'timestamp',
+            isGreaterThan: now.subtract(const Duration(days: 7)),
+          )
           .orderBy('timestamp', descending: true)
           .get();
 
@@ -139,12 +173,18 @@ OUTPUT FORMAT:
       context.writeln("- Age/DOB: ${profile['dob'] ?? 'Not provided'}");
       context.writeln("- Height: ${profile['height'] ?? 'Not provided'} cm");
       context.writeln("- Weight: ${profile['weight'] ?? 'Not provided'} kg");
-      context.writeln("- Life Stage / Condition: ${profile['lifeStage'] ?? 'None'}");
+      context.writeln(
+        "- Life Stage / Condition: ${profile['lifeStage'] ?? 'None'}",
+      );
       if (profile['lifeStage'] == 'pregnant') {
-        context.writeln("- Trimester: ${profile['trimester'] ?? 'Not provided'}");
-        context.writeln("- Pregnancy Week: ${profile['pregnancyWeek'] ?? 'Not provided'}");
+        context.writeln(
+          "- Trimester: ${profile['trimester'] ?? 'Not provided'}",
+        );
+        context.writeln(
+          "- Pregnancy Week: ${profile['pregnancyWeek'] ?? 'Not provided'}",
+        );
       }
-      
+
       context.writeln("\nRECENT HEALTH LOGS (LAST 7 DAYS):");
       if (last7Days.docs.isEmpty) {
         context.writeln("No logs found for the last 7 days.");
@@ -155,7 +195,9 @@ OUTPUT FORMAT:
           final time = data['timeOfLog'] ?? 'Unknown';
           context.writeln("Date: $date ($time)");
           if (data['isOnPeriod'] != null) {
-            context.writeln("  - Status: ${data['isOnPeriod'] == true ? 'On Period (Day ${data['periodDay']})' : 'Not on period'}");
+            context.writeln(
+              "  - Status: ${data['isOnPeriod'] == true ? 'On Period (Day ${data['periodDay']})' : 'Not on period'}",
+            );
           }
           context.writeln("  - Phase: ${data['periodPhase'] ?? 'N/A'}");
           context.writeln("  - Symptoms: ${data['symptoms'] ?? 'None'}");
@@ -163,22 +205,36 @@ OUTPUT FORMAT:
           context.writeln("  - Sleep: ${data['sleep'] ?? 'N/A'}");
           context.writeln("  - Activity: ${data['activity'] ?? 'N/A'}");
           context.writeln("  - Weight: ${data['weight'] ?? 'Same as profile'}");
-          if (data['waist'] != null) context.writeln("  - Waist: ${data['waist']} cm, Hip: ${data['hip']} cm");
-          if (data['ateFastFood'] != null) context.writeln("  - Fast Food Consumed: ${data['ateFastFood']}");
+          if (data['waist'] != null)
+            context.writeln(
+              "  - Waist: ${data['waist']} cm, Hip: ${data['hip']} cm",
+            );
+          if (data['ateFastFood'] != null)
+            context.writeln("  - Fast Food Consumed: ${data['ateFastFood']}");
           // Pregnancy-specific log data
-          if (data['nausea'] != null) context.writeln("  - Nausea: ${data['nausea']}");
-          if (data['swelling'] != null) context.writeln("  - Swelling: ${data['swelling']}");
-          if (data['babyKicks'] != null) context.writeln("  - Baby Kicks: ${data['babyKicks']}");
-          if (data['prenatalVitamins'] != null) context.writeln("  - Prenatal Vitamins: ${data['prenatalVitamins']}");
-          if (data['contractionNotes'] != null && data['contractionNotes'].toString().isNotEmpty) {
-            context.writeln("  - Contraction Notes: ${data['contractionNotes']}");
+          if (data['nausea'] != null)
+            context.writeln("  - Nausea: ${data['nausea']}");
+          if (data['swelling'] != null)
+            context.writeln("  - Swelling: ${data['swelling']}");
+          if (data['babyKicks'] != null)
+            context.writeln("  - Baby Kicks: ${data['babyKicks']}");
+          if (data['prenatalVitamins'] != null)
+            context.writeln(
+              "  - Prenatal Vitamins: ${data['prenatalVitamins']}",
+            );
+          if (data['contractionNotes'] != null &&
+              data['contractionNotes'].toString().isNotEmpty) {
+            context.writeln(
+              "  - Contraction Notes: ${data['contractionNotes']}",
+            );
           }
           // Menopause-specific log data
-          if (data['irregularBleeding'] == true) context.writeln("  - Irregular Bleeding: Yes");
+          if (data['irregularBleeding'] == true)
+            context.writeln("  - Irregular Bleeding: Yes");
           if (data['spotting'] == true) context.writeln("  - Spotting: Yes");
         }
       }
-      
+
       return context.toString();
     } catch (e) {
       return "Error building AI context: $e";

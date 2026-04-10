@@ -11,9 +11,9 @@ class StepTrackerService {
   StepTrackerService._internal();
 
   // Stream controllers
-  StreamController<int> _stepCountController =
+  final StreamController<int> _stepCountController =
       StreamController<int>.broadcast();
-  StreamController<String> _pedestrianStatusController =
+  final StreamController<String> _pedestrianStatusController =
       StreamController<String>.broadcast();
 
   Stream<int> get stepCountStream => _stepCountController.stream;

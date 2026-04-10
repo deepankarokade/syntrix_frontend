@@ -50,8 +50,11 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (doc.exists && mounted) {
         final data = doc.data()!;
-        _userCondition = (data['lifeStage'] as String?)?.toLowerCase() ?? 'none';
-        if (!_conditions.contains(_userCondition)) _userCondition = 'none'; // Safety fallback
+        final rawStage = data['lifeStage'] as String?;
+        print("Diet: Loaded lifeStage from Firebase: '$rawStage'");
+        _userCondition = rawStage?.toLowerCase() ?? 'none';
+        if (!_conditions.contains(_userCondition)) _userCondition = 'none';
+        print("Diet: Using condition: $_userCondition");
         if (data['region'] != null) _regionController.text = data['region'];
         _activePlan = data['activeDietPlan'];
         if (_activePlan != null) {
@@ -310,7 +313,7 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
                 children: [
                   const Text('ACTIVE DIET STRATEGY', 
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3A6EA8), letterSpacing: 1.5)),
-                  Text('Personalized for ${_userCondition}', 
+                  Text('Personalized for $_userCondition', 
                     style: const TextStyle(fontSize: 14, color: Color(0xFF7A8FA6))),
                 ],
               ),

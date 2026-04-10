@@ -10,6 +10,10 @@ class PCOSDashboard extends StatelessWidget {
   final String userName;
   final String conditionLabel;
   final double? weight;
+  final int? cycleDay;
+  final int? nextPeriodDays;
+  final String? nextPeriodDateStr;
+  final String phaseName;
   final Function(int) onTabChange;
 
   const PCOSDashboard({
@@ -17,6 +21,10 @@ class PCOSDashboard extends StatelessWidget {
     required this.userName,
     required this.conditionLabel,
     this.weight,
+    this.cycleDay,
+    this.nextPeriodDays,
+    this.nextPeriodDateStr,
+    this.phaseName = 'Follicular Phase',
     required this.onTabChange,
   });
 
@@ -126,9 +134,9 @@ class PCOSDashboard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Cycle Day 12',
-                style: TextStyle(
+              Text(
+                cycleDay != null ? 'Cycle Day $cycleDay' : 'Cycle Day --',
+                style: const TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
@@ -137,29 +145,37 @@ class PCOSDashboard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Next Period',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white60,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Next Period',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white60,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        '16 Days',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                        const SizedBox(height: 2),
+                        Text(
+                          nextPeriodDays != null
+                              ? '${nextPeriodDays! < 0 ? 'Late by ${-nextPeriodDays!}' : nextPeriodDays} Days\\nEst. ${nextPeriodDateStr ?? '--'}'
+                              : '-- Days\\nEst. --',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -169,9 +185,9 @@ class PCOSDashboard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
-                      'Follicular Phase',
-                      style: TextStyle(
+                    child: Text(
+                      phaseName,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Colors.white,
                         fontWeight: FontWeight.w600,

@@ -98,7 +98,7 @@ class PcosResult {
 
   @override
   String toString() =>
-      'PcosResult(score: $riskScore, ${riskPercentage}%, '
+      'PcosResult(score: $riskScore, $riskPercentage%, '
       '${category.name}, model: $modelUsed)';
 }
 
@@ -178,7 +178,7 @@ class PcosPredictor {
     final outputTensor = [List<double>.filled(1, 0.0)];
     interpreter.run(inputTensor, outputTensor);
 
-    final prob = (outputTensor[0][0] as double).clamp(0.0, 1.0);
+    final prob = (outputTensor[0][0]).clamp(0.0, 1.0);
     print('PcosPredictor: model=$modelName, raw_prob=$prob');
 
     // Rank features by their absolute scaled contribution

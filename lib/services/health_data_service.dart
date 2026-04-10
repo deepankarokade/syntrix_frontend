@@ -40,10 +40,14 @@ class HealthDataService {
     final s = value.toString().trim().toLowerCase();
     // Severity labels
     if (s == 'mild' || s == 'low' || s == 'none' || s == 'no' || s == 'n'
-        || s == 'false' || s == '0') return 0.0;
+        || s == 'false' || s == '0') {
+      return 0.0;
+    }
     if (s == 'moderate' || s == 'mod' || s == 'medium' || s == 'mid'
         || s == 'severe' || s == 'sev' || s == 'high'
-        || s == 'yes' || s == 'y' || s == 'true' || s == '1') return 1.0;
+        || s == 'yes' || s == 'y' || s == 'true' || s == '1') {
+      return 1.0;
+    }
     return 0.0;
   }
 
@@ -215,12 +219,12 @@ class HealthDataService {
         'Hb(g/dl)':             hb,
         'Waist:Hip Ratio':      whr,
         // Advanced hormonal markers (only populated if report exists)
-        if (lh  != null) 'LH(mIU/mL)':  lh,
-        if (fsh != null) 'FSH(mIU/mL)': fsh,
+        'LH(mIU/mL)':  ?lh,
+        'FSH(mIU/mL)': ?fsh,
         if (hasHormonalData)  'LH/FSH Ratio': lhfshRatio,
-        if (amh != null) 'AMH(ng/mL)':  amh,
-        if (prl != null) 'PRL(ng/mL)':  prl,
-        if (prg != null) 'PRG(ng/mL)':  prg,
+        'AMH(ng/mL)':  ?amh,
+        'PRL(ng/mL)':  ?prl,
+        'PRG(ng/mL)':  ?prg,
       };
 
       print('HealthDataService: hasHormonalData=$hasHormonalData, '

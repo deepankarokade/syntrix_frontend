@@ -186,11 +186,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
         setState(() {
           _cycleDay = daysSinceLastPeriod + 1;
-          int cycleLength = 28;
+          int cycleLength = _lifeStage == 'pcos' ? 35 : (_isIrregular ? 32 : 28);
           _nextPeriodDays = cycleLength - _cycleDay!;
-          if (_nextPeriodDays! < 0) _nextPeriodDays = 0;
 
-          DateTime nextPeriodDate = now.add(Duration(days: _nextPeriodDays!));
+          // Formula: Calculate the expected next period based strictly on the last logged period + cycle length
+          DateTime nextPeriodDate = lastPeriodStartDate!.add(Duration(days: cycleLength));
           _nextPeriodDateStr = DateFormat('MMM dd, yyyy').format(nextPeriodDate);
 
           if (currentlyOnPeriod) {
@@ -326,6 +326,10 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
             userName: _userName,
             conditionLabel: _conditionLabel,
             weight: _weight,
+            cycleDay: _cycleDay,
+            nextPeriodDays: _nextPeriodDays,
+            nextPeriodDateStr: _nextPeriodDateStr,
+            phaseName: _phaseName,
             onTabChange: (index) => setState(() => _currentTab = index),
           );
         } else if (_lifeStage == 'pregnant') {
