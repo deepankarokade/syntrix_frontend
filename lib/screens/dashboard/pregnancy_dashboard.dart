@@ -77,29 +77,34 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
           children: [
             const Icon(Icons.face, size: 24, color: Color(0xFF2E4A6B)),
             const SizedBox(width: 8),
-            Text(
-              'Serene – $conditionLabel',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2E4A6B),
+            Expanded(
+              child: Text(
+                'Serene – $conditionLabel',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E4A6B),
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
-            const Spacer(),
             IconButton(
               onPressed: () {},
               icon: const Icon(Icons.settings, color: Color(0xFF2E4A6B)),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-            TextButton.icon(
-              onPressed: () {
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => const ConditionSelectionScreen()),
                 );
               },
-              icon: const Icon(Icons.swap_horiz, size: 18, color: Color(0xFF7A8FA6)),
-              label: const Text(
-                'Switch',
-                style: TextStyle(fontSize: 12, color: Color(0xFF7A8FA6)),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.swap_horiz, size: 20, color: Color(0xFF7A8FA6)),
               ),
             ),
           ],

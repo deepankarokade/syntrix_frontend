@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Sends transactional emails via EmailJS (https://www.emailjs.com).
 ///
@@ -9,12 +10,12 @@ import 'package:http/http.dart' as http;
 ///   3. Create an Email Template with variables {{to_name}}, {{to_email}}
 ///      → note the TEMPLATE_ID
 ///   4. Copy your Public Key from Account → API Keys
-///   5. Replace the three constants below.
+///   5. Add these values to your .env file
 class EmailService {
-  // ── Replace these with your EmailJS credentials ──────────────────────────
-  static const String _serviceId = 'YOUR_SERVICE_ID';
-  static const String _templateId = 'YOUR_TEMPLATE_ID';
-  static const String _publicKey = 'YOUR_PUBLIC_KEY';
+  // ── Credentials loaded from .env file ──────────────────────────────────
+  static String get _serviceId => dotenv.env['EMAILJS_SERVICE_ID'] ?? '';
+  static String get _templateId => dotenv.env['EMAILJS_TEMPLATE_ID'] ?? '';
+  static String get _publicKey => dotenv.env['EMAILJS_PUBLIC_KEY'] ?? '';
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Sends a welcome email to [toEmail] addressed to [toName].

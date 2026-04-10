@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AiService {
-  static const String _apiKey = "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";
-  static const String _apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+  static String get _apiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
+  static String get _apiUrl => dotenv.env['OPENROUTER_API_URL'] ?? 'https://openrouter.ai/api/v1/chat/completions';
 
   static const String chatSystemPrompt = """
 You are a HIGH-PRECISION Women's Health AI Assistant.
