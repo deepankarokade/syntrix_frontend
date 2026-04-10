@@ -20,6 +20,35 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
   final _descriptionController = TextEditingController();
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentCondition();
+  }
+
+  Future<void> _loadCurrentCondition() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        setState(() {
+          _selectedCondition = data['lifeStage'] ?? 'none';
+          if (data['personalDescription'] != null) {
+            _descriptionController.text = data['personalDescription'];
+          }
+          if (_selectedCondition == 'pregnant' && data['pregnancyWeek'] != null) {
+            _weekController.text = data['pregnancyWeek'].toString();
+          }
+        });
+      }
+    } catch (e) {
+      print("Error loading current condition: $e");
+    }
+  }
+
   final List<_ConditionOption> _options = [
     _ConditionOption(
       value: 'pcos',

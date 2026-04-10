@@ -18,8 +18,9 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
   bool _isLoading = false;
   bool _fetchingProfile = true;
   String? _activePlan;
-  String _userCondition = 'General healthy eating';
+  String _userCondition = 'pcos'; // Default to something common if not loaded
   String _userSymptoms = 'None';
+  final List<String> _conditions = ['pcos', 'pregnant', 'menopause', 'none'];
 
   late TabController _tabController;
 
@@ -49,7 +50,8 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (doc.exists && mounted) {
         final data = doc.data()!;
-        _userCondition = data['lifeStage'] ?? 'None';
+        _userCondition = (data['lifeStage'] as String?)?.toLowerCase() ?? 'none';
+        if (!_conditions.contains(_userCondition)) _userCondition = 'none'; // Safety fallback
         if (data['region'] != null) _regionController.text = data['region'];
         _activePlan = data['activeDietPlan'];
         if (_activePlan != null) {
@@ -105,10 +107,10 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
       {
         "role": "user",
         "content": "Grounded User Data:\n$contextData\n\n"
-                  "Request: Generate a diet plan for region: $region. "
-                  "Condition Context: $_userCondition. "
+                  "Selected Goal/Condition: $_userCondition. "
+                  "Requested Region: $region. "
                   "Current Symptoms detected from logs: $_userSymptoms. "
-                  "Strictly follow the medical grounding provided for this specific condition."
+                  "Stricly generate the plan for the SELECTED CONDITION: $_userCondition."
       },
     ];
 
@@ -119,7 +121,9 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
     if (user != null) {
       FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'region': region,
+        'lifeStage': _userCondition, // Persist the condition change
         'activeDietPlan': response,
+        'dietPlanTimestamp': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     }
 
@@ -180,9 +184,36 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
           ),
           const SizedBox(height: 32),
           _buildTextField('Region (e.g. South India, Europe)', _regionController),
+          const SizedBox(height: 20),
+          const Text('Your Current Health Goal/Condition', 
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E4A6B))),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _userCondition,
+                isExpanded: true,
+                items: _conditions.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  if (newValue != null) {
+                    setState(() => _userCondition = newValue);
+                  }
+                },
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
-          _infoTag('Detected Condition: ${_userCondition.toUpperCase()}'),
-          _infoTag('Current Symptoms: $_userSymptoms'),
+          _infoTag('Current Symptoms (from logs): $_userSymptoms'),
           const SizedBox(height: 40),
           ElevatedButton(
             onPressed: _isLoading ? null : _generateDietPlan,
@@ -228,39 +259,99 @@ class _DietPlannerScreenState extends State<DietPlannerScreen> with SingleTicker
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.restaurant_menu, size: 64, color: Colors.grey[300]),
+            Icon(Icons.restaurant_menu, size: 64, color: Colors.grey[200]),
             const SizedBox(height: 16),
-            const Text('No active plan. Generate one first!', style: TextStyle(color: Color(0xFF7A8FA6))),
+            const Text('No active plan found', style: TextStyle(color: Color(0xFF7A8FA6), fontSize: 16)),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => _tabController.animateTo(0),
+              child: const Text('Generate Now'),
+            ),
           ],
         ),
       );
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('YOUR TAILORED DIET', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFD68A3D), letterSpacing: 1.2)),
-          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('ACTIVE DIET STRATEGY', 
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3A6EA8), letterSpacing: 1.5)),
+                  Text('Personalized for ${_userCondition}', 
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF7A8FA6))),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.verified_user, color: Color(0xFF1976D2), size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          // Using a card for the main content to make it look "premium"
           Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
             child: MarkdownBody(
               data: _activePlan!,
               styleSheet: MarkdownStyleSheet(
-                h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A2B3C)),
-                h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF3A6EA8)),
-                p: const TextStyle(fontSize: 15, color: Color(0xFF3D5166), height: 1.5),
+                h1: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1A3B5D), height: 1.4),
+                h2: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Color(0xFF3A6EA8), height: 1.6),
+                p: const TextStyle(fontSize: 15, color: Color(0xFF4A5F75), height: 1.6),
+                listBullet: const TextStyle(color: Color(0xFF3A6EA8)),
+                tableBorder: TableBorder.all(color: Colors.grey.shade200, width: 1),
+                tableHead: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A3B5D)),
+                tableBody: const TextStyle(fontSize: 14, color: Color(0xFF4A5F75)),
               ),
             ),
           ),
           const SizedBox(height: 32),
-          TextButton.icon(
-            onPressed: () => _tabController.animateTo(0),
-            icon: const Icon(Icons.refresh),
-            label: const Text('Update Plan'),
+          
+          Center(
+            child: Column(
+              children: [
+                const Text('Plan needs update? Your health markers change daily.', 
+                  style: TextStyle(fontSize: 13, color: Color(0xFF7A8FA6))),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _tabController.animateTo(0),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('REGNERATE DAILY PLAN'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF3A6EA8),
+                    side: const BorderSide(color: Color(0xFF3A6EA8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: 40),
         ],
       ),
     );
