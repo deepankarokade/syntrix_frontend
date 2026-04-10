@@ -23,6 +23,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _weightController = TextEditingController();
   final _dobController = TextEditingController();
   DateTime? _selectedDob;
+  
+  // Weight Selection State
+  double _currentWeight = 60.0;
+  final double _minWeight = 30.0;
+  final double _maxWeight = 150.0;
+  late ScrollController _weightScrollController;
+  final double _tickSpacing = 12.0; // 8 width + 2*2 margin
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
@@ -40,7 +47,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _weightController.text = _currentWeight.toInt().toString();
+    _weightScrollController = ScrollController();
+    
+    // Schedule initial scroll after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToWeight(_currentWeight);
+    });
+  }
+
+  void _scrollToWeight(double weight) {
+    if (!_weightScrollController.hasClients) return;
+    double offset = (weight - _minWeight) * _tickSpacing;
+    _weightScrollController.jumpTo(offset);
+  }
+
+  void _updateWeightFromScroll(double offset) {
+    double weight = _minWeight + (offset / _tickSpacing);
+    if (weight < _minWeight) weight = _minWeight;
+    if (weight > _maxWeight) weight = _maxWeight;
+    
+    setState(() {
+      _currentWeight = weight;
+      _weightController.text = weight.toInt().toString();
+    });
+  }
+
+
+  @override
   void dispose() {
+    _weightScrollController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -497,7 +535,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 18),
 
-                  // ── Height and Weight Row ──────────────────────────────
+                  // ── Height and Weight Card ──────────────────────────────
                   Row(
                     children: [
                       Expanded(
@@ -522,30 +560,131 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Weight (kg)',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF3D5166),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _buildField(
-                              controller: _weightController,
-                              icon: Icons.monitor_weight_outlined,
-                              hint: '55',
-                              keyboardType: TextInputType.number,
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // ── Weight Selection Card ──────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "What is your weight?",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A2B3C),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Weight Display
+                        Text(
+                          "${_currentWeight.toInt()} kg",
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFB5616A),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Ruler Scale
+                        SizedBox(
+                          height: 80,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  NotificationListener<ScrollNotification>(
+                                    onNotification: (notification) {
+                                      if (notification is ScrollUpdateNotification) {
+                                        _updateWeightFromScroll(
+                                            notification.metrics.pixels);
+                                      }
+                                      return true;
+                                    },
+                                    child: ListView.builder(
+                                      controller: _weightScrollController,
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: (_maxWeight - _minWeight).toInt() + 1,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: constraints.maxWidth / 2 - (_tickSpacing / 2),
+                                      ),
+                                      itemBuilder: (context, index) {
+                                        int weightValue = (_minWeight + index).toInt();
+                                        bool isMajor = weightValue % 5 == 0;
+                                        
+                                        return Container(
+                                          width: _tickSpacing,
+                                          alignment: Alignment.bottomCenter,
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              if (isMajor)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                                  child: Text(
+                                                    "$weightValue",
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Color(0xFF7A8FA6),
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              Container(
+                                                width: 3,
+                                                height: isMajor ? 35 : 18,
+                                                decoration: BoxDecoration(
+                                                  color: isMajor 
+                                                      ? const Color(0xFF3D5166) 
+                                                      : const Color(0xFFB0BEC5).withValues(alpha: 0.5),
+                                                  borderRadius: BorderRadius.circular(2),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  // Center Indicator
+                                  IgnorePointer(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Container(
+                                          width: 3,
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFB5616A),
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 18),
