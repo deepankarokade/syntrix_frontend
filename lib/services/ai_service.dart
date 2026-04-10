@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AiService {
-  static const String _apiKey = "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";
+  static const String _apiKey = "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";
   static const String _apiUrl = "https://openrouter.ai/api/v1/chat/completions";
 
   static const String chatSystemPrompt = """
 You are a HIGH-PRECISION Women's Health AI Assistant.
 
 STRICT RULES:
-- NO hallucinations
+- NO hallucinations. ONLY respond based on provided user health data and medical facts.
+- If data is missing for a specific date, state "No data recorded for [Date]" instead of assuming.
 - If the user asks a question NOT related to health and women's well-being, you must politely decline and state that you only answer questions related to health.
 - If unsure → say "I cannot verify this medically"
 - Always include clinical parameters (TSH, HbA1c, etc.)
@@ -37,10 +40,10 @@ MISSION:
 Generate highly personalized, medically accurate diet plans based strictly on user data.
 
 STRICT RULES:
-- ZERO hallucination
-- NEVER assume missing values
-- If required data is missing → ASK QUESTIONS FIRST
-- Use only medically accepted clinical ranges
+- ZERO hallucination. 
+- NEVER assume missing values. If weight or height is not in the context, ASK for it.
+- If required data is missing → ASK QUESTIONS FIRST.
+- Use only medically accepted clinical ranges.
 - If unsure → say "I cannot verify this medically"
 
 SUPPORTED CONDITIONS:
@@ -84,10 +87,10 @@ OUTPUT FORMAT:
   }) async {
     try {
       final payload = {
-        "model": "qwen/qwen3.6-plus",
+        "model": "google/gemini-2.0-flash-001",
         "messages": messages,
         "temperature": 0.2,
-        "max_tokens": 1500,
+        "max_tokens": 800,
       };
 
       final response = await http.post(
@@ -110,6 +113,61 @@ OUTPUT FORMAT:
       return "Error: Unable to fetch response (Status ${response.statusCode})\\n${response.body}";
     } catch (e) {
       return "Error: $e";
+    }
+  }
+
+  /// Fetches last 7 days of logs + profile to build a grounding context for AI
+  static Future<String> getGroundingContext() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return "User not logged in.";
+
+    try {
+      final profileDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final profile = profileDoc.data() ?? {};
+      
+      final logsCol = FirebaseFirestore.instance
+          .collection('logs')
+          .doc(user.uid)
+          .collection('daily_entries');
+      
+      final now = DateTime.now();
+      final last7Days = await logsCol
+          .where('timestamp', isGreaterThan: now.subtract(const Duration(days: 7)))
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      StringBuffer context = StringBuffer();
+      context.writeln("USER PROFILE:");
+      context.writeln("- Name: ${profile['name'] ?? 'Not provided'}");
+      context.writeln("- Age/DOB: ${profile['dob'] ?? 'Not provided'}");
+      context.writeln("- Height: ${profile['height'] ?? 'Not provided'} cm");
+      context.writeln("- Weight: ${profile['weight'] ?? 'Not provided'} kg");
+      context.writeln("- Conditions: ${profile['condition'] ?? 'None'}");
+      
+      context.writeln("\nRECENT HEALTH LOGS (LAST 7 DAYS):");
+      if (last7Days.docs.isEmpty) {
+        context.writeln("No logs found for the last 7 days.");
+      } else {
+        for (var doc in last7Days.docs) {
+          final data = doc.data();
+          final date = doc.id.split('_').first;
+          final time = data['timeOfLog'] ?? 'Unknown';
+          context.writeln("Date: $date ($time)");
+          context.writeln("  - Status: ${data['isOnPeriod'] == true ? 'On Period (Day ${data['periodDay']})' : 'Not on period'}");
+          context.writeln("  - Phase: ${data['periodPhase'] ?? 'N/A'}");
+          context.writeln("  - Symptoms: ${data['symptoms'] ?? 'None'}");
+          context.writeln("  - Mood: ${data['mood'] ?? 'General'}");
+          context.writeln("  - Sleep: ${data['sleep'] ?? 'N/A'}");
+          context.writeln("  - Activity: ${data['activity'] ?? 'N/A'}");
+          context.writeln("  - Weight: ${data['weight'] ?? 'Same as profile'}");
+          if (data['waist'] != null) context.writeln("  - Waist: ${data['waist']} cm, Hip: ${data['hip']} cm");
+          if (data['ateFastFood'] != null) context.writeln("  - Fast Food Consumed: ${data['ateFastFood']}");
+        }
+      }
+      
+      return context.toString();
+    } catch (e) {
+      return "Error building AI context: $e";
     }
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../insights/pregnancy_insights_screen.dart';
+import '../onboarding/condition_selection_screen.dart';
+import '../chatbot/chatbot_screen.dart';
+import '../diet/diet_planner_screen.dart';
 
 class PregnancyDashboard extends StatefulWidget {
   final String userName;
@@ -89,7 +92,9 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
             ),
             TextButton.icon(
               onPressed: () {
-                Navigator.of(context).pushNamedAndRemoveUntil('/selection', (route) => false);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const ConditionSelectionScreen()),
+                );
               },
               icon: const Icon(Icons.swap_horiz, size: 18, color: Color(0xFF7A8FA6)),
               label: const Text(
@@ -530,7 +535,10 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
               color: const Color(0xFFB5616A),
               bgColor: const Color(0xFFFFECEC),
               onTap: () {
-                // Already handled in main logic usually, but keep same style
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+                );
               },
             ),
             _quickAction(
@@ -538,14 +546,19 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
               label: 'Meal Plan',
               color: const Color(0xFF2E7D6B),
               bgColor: const Color(0xFFE0F4F0),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DietPlannerScreen()),
+                );
+              },
             ),
             _quickAction(
               icon: Icons.calendar_month,
               label: 'Tracking',
               color: const Color(0xFFD68A3D),
               bgColor: const Color(0xFFFDF3E9),
-              onTap: () => onTabChange(1),
+              onTap: () => onTabChange(2), // 2 is LogEntryScreen
             ),
           ],
         ),

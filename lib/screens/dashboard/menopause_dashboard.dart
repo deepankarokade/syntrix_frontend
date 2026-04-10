@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import '../onboarding/condition_selection_screen.dart';
 
 class MenopauseDashboard extends StatelessWidget {
   final String userName;
   final String conditionLabel;
+  final double? weight;
   final Function(int) onTabChange;
 
   const MenopauseDashboard({
     super.key,
     required this.userName,
     required this.conditionLabel,
+    this.weight,
     required this.onTabChange,
   });
 
@@ -45,7 +48,9 @@ class MenopauseDashboard extends StatelessWidget {
           const SizedBox(height: 40),
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.of(context).pushNamedAndRemoveUntil('/selection', (route) => false);
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ConditionSelectionScreen()),
+              );
             },
             icon: const Icon(Icons.swap_horiz),
             label: const Text('Switch Condition'),
