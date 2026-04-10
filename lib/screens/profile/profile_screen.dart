@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/cloudinary_service.dart';
 import '../../services/user_session.dart';
+import '../onboarding/condition_selection_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,6 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _height;
   String? _dob;
   String? _condition;
+  String? _lifeStage; // Added to store raw value
   String? _photoUrl;
   bool _isUploading = false;
 
@@ -42,6 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _height = UserSession.height;
           _dob = UserSession.dob;
           _condition = UserSession.condition;
+          // _lifeStage = ... // We might need to handle this if we want exact raw values
           _photoUrl = UserSession.photoUrl;
         });
       }
@@ -81,7 +84,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _name = data['name'] ?? user!.displayName ?? "User";
           _weight = data['weight']?.toString() ?? "--";
           _height = data['height']?.toString() ?? "--";
-          _condition = data['lifeStage'] ?? "General Tracking";
+          _lifeStage = data['lifeStage'] ?? "none";
+          
+          final conditionTags = {
+            'pcos': 'PCOS Management',
+            'pregnant': 'Pregnancy Tracking',
+            'menopause': 'Menopause Support',
+            'none': 'General Tracking',
+          };
+          _condition = conditionTags[_lifeStage] ?? 'General Tracking';
+
           _dob = formattedDob;
           _photoUrl = data['photoUrl'] as String?;
 
@@ -387,6 +399,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Date of Birth',
                       _dob ?? 'May 12, 1994',
                       onTap: _editDob,
+                    ),
+                    _divider(),
+                    _infoTile(
+                      Icons.monitor_heart_outlined,
+                      'Health Condition',
+                      _condition ?? 'General Tracking',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConditionSelectionScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

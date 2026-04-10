@@ -4,6 +4,8 @@ import '../report/reports_screen.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
 
+import '../onboarding/condition_selection_screen.dart';
+
 class PCOSDashboard extends StatelessWidget {
   final String userName;
   final String conditionLabel;
@@ -40,7 +42,9 @@ class PCOSDashboard extends StatelessWidget {
             TextButton.icon(
               onPressed: () {
                 // Navigate back to selection or call a callback
-                Navigator.of(context).pushNamedAndRemoveUntil('/selection', (route) => false);
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const ConditionSelectionScreen()),
+                );
               },
               icon: const Icon(Icons.swap_horiz, size: 18, color: Color(0xFF7A8FA6)),
               label: const Text(

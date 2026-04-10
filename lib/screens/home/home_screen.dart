@@ -13,6 +13,9 @@ import '../../services/user_session.dart';
 import '../../services/ai_service.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
+import '../dashboard/pcos_dashboard.dart';
+import '../dashboard/pregnancy_dashboard.dart';
+import '../dashboard/menopause_dashboard.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentTab = 0;
   String _userName = '';
   String _conditionLabel = 'General Tracking';
+  String _lifeStage = 'none';
+  String _trimester = '';
   double? _weight;
   bool _loadingUser = true;
 
@@ -120,6 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
           if (nameStr.isNotEmpty) {
             _userName = nameStr.split(' ').first;
           }
+          _lifeStage = stage;
+          _trimester = data['trimester'] as String? ?? '';
           _conditionLabel = _conditionTags[stage] ?? 'General Tracking';
           _weight = weightVal;
         });
@@ -313,7 +320,32 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
         currentBody = const ProfileScreen();
         break;
       default:
-        currentBody = _buildHomeContent();
+        // Main Home Tab
+        if (_lifeStage == 'pcos') {
+          currentBody = PCOSDashboard(
+            userName: _userName,
+            conditionLabel: _conditionLabel,
+            weight: _weight,
+            onTabChange: (index) => setState(() => _currentTab = index),
+          );
+        } else if (_lifeStage == 'pregnant') {
+          currentBody = PregnancyDashboard(
+            userName: _userName,
+            conditionLabel: _conditionLabel,
+            trimester: _trimester,
+            weight: _weight,
+            onTabChange: (index) => setState(() => _currentTab = index),
+          );
+        } else if (_lifeStage == 'menopause') {
+          currentBody = MenopauseDashboard(
+            userName: _userName,
+            conditionLabel: _conditionLabel,
+            weight: _weight,
+            onTabChange: (index) => setState(() => _currentTab = index),
+          );
+        } else {
+          currentBody = _buildHomeContent();
+        }
     }
 
     return Scaffold(

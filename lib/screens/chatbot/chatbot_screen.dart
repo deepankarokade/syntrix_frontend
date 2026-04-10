@@ -15,11 +15,36 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     {"role": "system", "content": AiService.chatSystemPrompt}
   ];
   final List<Map<String, dynamic>> _displayMessages = [];
-  bool _isLoading = false;
+  bool _isLoading = true;
+  bool _contextLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialContext();
+  }
+
+  Future<void> _loadInitialContext() async {
+    final contextData = await AiService.getGroundingContext();
+    if (mounted) {
+      setState(() {
+        _messages.add({
+          "role": "system",
+          "content": "GOUNDING USER CONTEXT:\n$contextData\nALWAYS refer to this data if the user asks about their own logs or condition."
+        });
+        _displayMessages.add({
+          "role": "assistant", 
+          "content": "Hello! I've synchronized with your latest health logs. I'm ready to discuss your symptoms or cycle. How are you feeling?"
+        });
+        _isLoading = false;
+        _contextLoaded = true;
+      });
+    }
+  }
 
   void _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || !_contextLoaded) return;
 
     setState(() {
       _displayMessages.add({"role": "user", "content": text});

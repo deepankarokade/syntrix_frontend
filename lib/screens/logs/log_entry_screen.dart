@@ -281,7 +281,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          "Date: " + DateFormat('MMMM dd, yyyy').format(_selectedLogDate) + " (Tap to change)",
+                          "Date: ${DateFormat('MMMM dd, yyyy').format(_selectedLogDate)} (Tap to change)",
                           style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF3A6EA8)),
                         ),
                       ),

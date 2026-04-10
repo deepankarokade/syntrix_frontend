@@ -962,7 +962,7 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
                     ),
                   );
                 },
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   height: 200,
                   color: const Color(0xFF1A2B3C),
                   child: const Center(
