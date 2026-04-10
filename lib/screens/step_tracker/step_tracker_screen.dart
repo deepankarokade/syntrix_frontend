@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:math';
 import '../../services/step_tracker_service.dart';
 
 class StepTrackerScreen extends StatefulWidget {
@@ -10,18 +9,13 @@ class StepTrackerScreen extends StatefulWidget {
   State<StepTrackerScreen> createState() => _StepTrackerScreenState();
 }
 
-class _StepTrackerScreenState extends State<StepTrackerScreen>
-    with SingleTickerProviderStateMixin {
+class _StepTrackerScreenState extends State<StepTrackerScreen> {
   final StepTrackerService _stepService = StepTrackerService();
-  final int _dailyGoal = 8000;
 
   int _steps = 0;
   String _status = 'stopped';
   List<Map<String, dynamic>> _weeklyData = [];
   bool _isLoading = true;
-
-  late AnimationController _animationController;
-  late Animation<double> _animation;
 
   StreamSubscription? _stepSub;
   StreamSubscription? _statusSub;
@@ -32,38 +26,45 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _animation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
-
     _initTracker();
   }
 
   Future<void> _initTracker() async {
-    await _stepService.initialize();
-    _steps = _stepService.todaySteps;
+    try {
+      await _stepService.initialize();
+      _steps = _stepService.todaySteps;
 
-    _stepSub = _stepService.stepCountStream.listen((steps) {
-      if (mounted) setState(() => _steps = steps);
-      _animationController.forward(from: 0);
-    });
+      _stepSub = _stepService.stepCountStream.listen((steps) {
+        if (mounted) setState(() => _steps = steps);
+      });
 
-    _statusSub = _stepService.pedestrianStatusStream.listen((status) {
-      if (mounted) setState(() => _status = status);
-    });
+      _statusSub = _stepService.pedestrianStatusStream.listen((status) {
+        if (mounted) setState(() => _status = status);
+      });
 
-    _weeklyData = await _stepService.getWeeklySteps();
+      // Load weekly data with timeout
+      try {
+        _weeklyData = await _stepService.getWeeklySteps().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            print('Weekly data fetch timed out, using empty data');
+            return [];
+          },
+        );
+      } catch (e) {
+        print('Error loading weekly data: $e');
+        _weeklyData = [];
+      }
 
-    _saveTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-      _stepService.saveStepsToFirestore();
-    });
+      _saveTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+        _stepService.saveStepsToFirestore();
+      });
 
-    if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      print('Error initializing tracker: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -71,12 +72,9 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
     _stepSub?.cancel();
     _statusSub?.cancel();
     _saveTimer?.cancel();
-    _animationController.dispose();
     super.dispose();
   }
 
-  double get _progress => (_steps / _dailyGoal).clamp(0.0, 1.0);
-  int get _remainingSteps => max(0, _dailyGoal - _steps);
   double get _caloriesBurned => _steps * 0.04; // Approx
   double get _distanceKm => _steps * 0.000762;
 
@@ -161,57 +159,40 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
 
   // ✅ Big circular step counter
   Widget _buildCircularProgress() {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Container(
-          width: 240,
-          height: 240,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 240,
-                height: 240,
-                child: CustomPaint(
-                  painter: _CircularProgressPainter(
-                    progress: _progress,
-                    color: const Color(0xFF2D7A7B),
-                  ),
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.directions_walk,
-                    color: Color(0xFF2D7A7B),
-                    size: 32,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$_steps',
-                    style: const TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D7A7B),
-                    ),
-                  ),
-                  const Text(
-                    'steps',
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$_remainingSteps left',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
+    return Container(
+      width: 240,
+      height: 240,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF2D7A7B).withOpacity(0.1),
+        border: Border.all(
+          color: const Color(0xFF2D7A7B),
+          width: 12,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.directions_walk,
+            color: Color(0xFF2D7A7B),
+            size: 32,
           ),
-        );
-      },
+          const SizedBox(height: 4),
+          Text(
+            '$_steps',
+            style: const TextStyle(
+              fontSize: 42,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D7A7B),
+            ),
+          ),
+          const Text(
+            'steps today',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+        ],
+      ),
     );
   }
 
@@ -222,8 +203,6 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
         _statCard('🔥 Calories', '${_caloriesBurned.toStringAsFixed(0)} kcal'),
         const SizedBox(width: 12),
         _statCard('📍 Distance', '${_distanceKm.toStringAsFixed(2)} km'),
-        const SizedBox(width: 12),
-        _statCard('🎯 Goal', '$_dailyGoal steps'),
       ],
     );
   }
@@ -268,7 +247,40 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
 
   // ✅ Weekly bar chart
   Widget _buildWeeklyChart() {
-    if (_weeklyData.isEmpty) return const SizedBox();
+    if (_weeklyData.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          ],
+        ),
+        child: Column(
+          children: [
+            const Text(
+              'Weekly Activity',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D7A7B),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No weekly data available yet.\nStart walking to see your progress!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[600],
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     final maxSteps = _weeklyData
         .map((e) => e['steps'] as int)
@@ -301,7 +313,6 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
             children: _weeklyData.map((data) {
               final steps = data['steps'] as int;
               final heightRatio = maxSteps == 0 ? 0.0 : steps / maxSteps;
-              final isGoalMet = steps >= _dailyGoal;
 
               return Column(
                 children: [
@@ -314,9 +325,7 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
                     width: 32,
                     height: 80 * heightRatio + 4,
                     decoration: BoxDecoration(
-                      color: isGoalMet
-                          ? const Color(0xFF2D7A7B)
-                          : const Color(0xFF2D7A7B).withOpacity(0.3),
+                      color: const Color(0xFF2D7A7B),
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
@@ -328,38 +337,6 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
                 ],
               );
             }).toList(),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2D7A7B),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'Goal achieved',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2D7A7B).withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'In progress',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-            ],
           ),
         ],
       ),
@@ -375,12 +352,12 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
     } else if (_steps < 6000) {
       tip =
           '✨ Great start! Regular walking supports estrogen metabolism and reduces PMS symptoms.';
-    } else if (_steps < 8000) {
+    } else if (_steps < 10000) {
       tip =
-          '🌟 Almost there! Consistent activity helps maintain insulin sensitivity, key for PCOS management.';
+          '🌟 Excellent progress! Consistent activity helps maintain insulin sensitivity, key for PCOS management.';
     } else {
       tip =
-          '🎉 Goal achieved! Regular activity is proven to reduce hot flashes and improve mood during menopause.';
+          '🎉 Amazing work! Regular activity is proven to reduce hot flashes and improve mood during menopause.';
     }
 
     return Container(
@@ -401,47 +378,4 @@ class _StepTrackerScreenState extends State<StepTrackerScreen>
       ),
     );
   }
-}
-
-// ✅ Custom painter for circular progress
-class _CircularProgressPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-
-  _CircularProgressPainter({required this.progress, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 12;
-
-    // Background arc
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -pi / 2,
-      2 * pi,
-      false,
-      Paint()
-        ..color = color.withOpacity(0.1)
-        ..strokeWidth = 14
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // Progress arc
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -pi / 2,
-      2 * pi * progress,
-      false,
-      Paint()
-        ..color = color
-        ..strokeWidth = 14
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_CircularProgressPainter old) => old.progress != progress;
 }

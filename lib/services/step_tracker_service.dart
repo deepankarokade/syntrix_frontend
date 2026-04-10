@@ -127,27 +127,45 @@ class StepTrackerService {
       if (user == null) return [];
 
       final List<Map<String, dynamic>> weeklyData = [];
+      final now = DateTime.now();
 
+      // Use a single query to get all data from the last 7 days
+      final sevenDaysAgo = now.subtract(const Duration(days: 6));
+      final sevenDaysAgoStr = _formatDate(sevenDaysAgo);
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('step_logs')
+          .where('date', isGreaterThanOrEqualTo: sevenDaysAgoStr)
+          .get()
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () => throw TimeoutException('Query timed out'),
+          );
+
+      // Create a map of date -> steps for quick lookup
+      final Map<String, int> stepsMap = {};
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        stepsMap[data['date']] = data['steps'] ?? 0;
+      }
+
+      // Build the weekly data array
       for (int i = 6; i >= 0; i--) {
-        final date = DateTime.now().subtract(Duration(days: i));
+        final date = now.subtract(Duration(days: i));
         final dateStr = _formatDate(date);
-
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('step_logs')
-            .doc(dateStr)
-            .get();
 
         weeklyData.add({
           'date': dateStr,
           'day': _getDayName(date),
-          'steps': doc.exists ? (doc.data()?['steps'] ?? 0) : 0,
+          'steps': stepsMap[dateStr] ?? 0,
         });
       }
 
       return weeklyData;
     } catch (e) {
+      print('Error getting weekly steps: $e');
       return [];
     }
   }
