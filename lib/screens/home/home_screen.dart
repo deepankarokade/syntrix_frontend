@@ -178,28 +178,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final cycleData = await CyclePredictionService.getCycleData(uid);
       if (mounted) {
         setState(() {
-<<<<<<< Updated upstream
-          _cycleDay = daysSinceLastPeriod + 1;
-          int cycleLength = _lifeStage == 'pcos' ? 35 : (_isIrregular ? 32 : 28);
-          _nextPeriodDays = cycleLength - _cycleDay!;
-
-          // Formula: Calculate the expected next period based strictly on the last logged period + cycle length
-          DateTime nextPeriodDate = lastPeriodStartDate!.add(Duration(days: cycleLength));
-          _nextPeriodDateStr = DateFormat('MMM dd, yyyy').format(nextPeriodDate);
-
-          if (currentlyOnPeriod) {
-            _phaseName = 'Menstrual Phase';
-          } else if (_cycleDay! <= 5) {
-            _phaseName = 'Menstrual Phase';
-          } else if (_cycleDay! <= 13) {
-            _phaseName = 'Follicular Phase';
-          } else if (_cycleDay! == 14) {
-            _phaseName = 'Ovulation';
-=======
           _cycleDay = cycleData.cycleDay;
           if (cycleData.daysToNextPeriod < 0) {
-            _nextPeriodDays = 0; // Late
->>>>>>> Stashed changes
+            _nextPeriodDays = 0;
           } else {
             _nextPeriodDays = cycleData.daysToNextPeriod;
           }
@@ -209,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (e) {
-      print('Home: Error loading cycle data: $e');
+      print('Home: Error loading cycle data: \$e');
     }
   }
 
@@ -270,14 +251,10 @@ class _HomeScreenState extends State<HomeScreen> {
             weight: _weight,
             cycleDay: _cycleDay,
             nextPeriodDays: _nextPeriodDays,
-<<<<<<< Updated upstream
             nextPeriodDateStr: _nextPeriodDateStr,
             phaseName: _phaseName,
-            todaySteps: _todaySteps,
-=======
-            phaseName: _phaseName,
             isIrregular: _isIrregular,
->>>>>>> Stashed changes
+            todaySteps: _todaySteps,
             onTabChange: (index) => setState(() => _currentTab = index),
           );
         } else if (_lifeStage == 'pregnant') {

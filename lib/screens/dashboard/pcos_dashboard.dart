@@ -13,14 +13,10 @@ class PCOSDashboard extends StatelessWidget {
   final double? weight;
   final int? cycleDay;
   final int? nextPeriodDays;
-<<<<<<< Updated upstream
   final String? nextPeriodDateStr;
-  final String phaseName;
-  final int todaySteps;
-=======
   final String? phaseName;
   final bool? isIrregular;
->>>>>>> Stashed changes
+  final int todaySteps;
   final Function(int) onTabChange;
 
   const PCOSDashboard({
@@ -30,14 +26,10 @@ class PCOSDashboard extends StatelessWidget {
     this.weight,
     this.cycleDay,
     this.nextPeriodDays,
-<<<<<<< Updated upstream
     this.nextPeriodDateStr,
-    this.phaseName = 'Follicular Phase',
-    required this.todaySteps,
-=======
     this.phaseName,
     this.isIrregular,
->>>>>>> Stashed changes
+    required this.todaySteps,
     required this.onTabChange,
   });
 
@@ -160,32 +152,6 @@ class PCOSDashboard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-<<<<<<< Updated upstream
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Next Period',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.white60,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          nextPeriodDays != null
-                              ? '${nextPeriodDays! < 0 ? 'Late by ${-nextPeriodDays!}' : nextPeriodDays} Days\\nEst. ${nextPeriodDateStr ?? '--'}'
-                              : '-- Days\\nEst. --',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            height: 1.3,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-=======
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -203,10 +169,9 @@ class PCOSDashboard extends StatelessWidget {
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
->>>>>>> Stashed changes
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 8),
                   Container(
@@ -219,11 +184,7 @@ class PCOSDashboard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-<<<<<<< Updated upstream
-                      phaseName,
-=======
                       phaseName ?? 'Tracking',
->>>>>>> Stashed changes
                       style: const TextStyle(
                         fontSize: 13,
                         color: Colors.white,
