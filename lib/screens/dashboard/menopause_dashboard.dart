@@ -3,12 +3,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../onboarding/condition_selection_screen.dart';
 import '../chatbot/chatbot_screen.dart';
+import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
+import '../step_tracker/step_tracker_screen.dart';
+import '../../services/ai_service.dart';
 
 class MenopauseDashboard extends StatefulWidget {
   final String userName;
   final String conditionLabel;
   final double? weight;
+  final int todaySteps;
   final Function(int) onTabChange;
 
   const MenopauseDashboard({
@@ -16,6 +20,7 @@ class MenopauseDashboard extends StatefulWidget {
     required this.userName,
     required this.conditionLabel,
     this.weight,
+    required this.todaySteps,
     required this.onTabChange,
   });
 
@@ -27,11 +32,31 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
   bool _isLoading = true;
   Map<String, dynamic> _lastLog = {};
   bool _showDoctorAlert = false;
+  String? _aiInsight;
+  bool _isLoadingAi = false;
 
   @override
   void initState() {
     super.initState();
     _fetchLastLog();
+  }
+
+  Future<void> _generateInsight() async {
+    setState(() => _isLoadingAi = true);
+    try {
+      String contextStr = await AiService.getGroundingContext();
+      String prompt = "You are a strict, medical menopause clinical expert. Using the following user timeline, write a short, 2-3 sentence clinical insight about their current condition, identifying their most severe menopausal symptom and assigning ONE concrete action to improve it. Do NOT hallucinate fake dates. Be direct.\n\n$contextStr";
+      
+      String? result = await AiService.sendMessage(messages: [{"role": "user", "content": prompt}]);
+      
+      if (mounted && result != null) {
+         setState(() => _aiInsight = result.replaceAll('*', ''));
+      }
+    } catch(e) {
+      if (mounted) setState(() => _aiInsight = "Failed to load insight.");
+    } finally {
+      if (mounted) setState(() => _isLoadingAi = false);
+    }
   }
 
   Future<void> _fetchLastLog() async {
@@ -207,12 +232,96 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
         const SizedBox(height: 16),
 
         // ── Physical Wellness ────────────────────────────────
-        _wellnessCard(
-          icon: Icons.monitor_weight_outlined,
-          title: 'Weight Tracking',
-          value: widget.weight != null ? '${widget.weight} kg' : 'Add weight',
-          progress: 0.65,
-          color: Colors.brown[400]!,
+        Row(
+          children: [
+            Expanded(
+              child: _wellnessCard(
+                icon: Icons.monitor_weight_outlined,
+                title: 'Weight\nTracking',
+                value: widget.weight != null ? '${widget.weight} kg' : '--',
+                progress: 0.65,
+                color: Colors.brown[400]!,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const StepTrackerScreen()),
+                  );
+                },
+                child: _wellnessCard(
+                  icon: Icons.directions_run,
+                  title: 'Daily\nSteps',
+                  value: '${widget.todaySteps}',
+                  progress: widget.todaySteps / 8000,
+                  color: Colors.teal[400]!,
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        // ── AI Automated Insights ─────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'SMART AUTOMATED INSIGHT',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF7A8FA6),
+                letterSpacing: 1.2,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _isLoadingAi ? null : _generateInsight,
+              icon: _isLoadingAi 
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF3A6EA8)),
+              label: Text(_isLoadingAi ? 'Loading...' : 'Generate AI Insight', style: const TextStyle(fontSize: 12, color: Color(0xFF3A6EA8))),
+            )
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8F0F8),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFF3A6EA8).withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.auto_awesome, color: Color(0xFF3A6EA8), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _aiInsight == null 
+                  ? const Text(
+                      'Push the button above to securely analyze your log history and calculate personalized clinical insights.',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF7A8FA6), fontStyle: FontStyle.italic),
+                    )
+                  : Text(
+                      _aiInsight!,
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF1A2B3C), height: 1.4, fontWeight: FontWeight.w500),
+                    ),
+              ),
+            ],
+          ),
         ),
 
         const SizedBox(height: 24),
@@ -392,22 +501,24 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: color),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 20),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1A2B3C))),
+                Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1A2B3C))),
                 const SizedBox(height: 4),
+                Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1A2B3C))),
+                const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: color.withOpacity(0.1),
+                    value: progress.clamp(0.0, 1.0),
+                    backgroundColor: color.withValues(alpha: 0.1),
                     color: color,
                     minHeight: 4,
                   ),
@@ -415,8 +526,6 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
               ],
             ),
           ),
-          const SizedBox(width: 16),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1A2B3C))),
         ],
       ),
     );

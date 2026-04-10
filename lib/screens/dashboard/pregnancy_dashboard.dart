@@ -13,6 +13,7 @@ class PregnancyDashboard extends StatefulWidget {
   final String conditionLabel;
   final String trimester;
   final double? weight;
+  final int todaySteps;
   final Function(int) onTabChange;
 
   const PregnancyDashboard({
@@ -21,6 +22,7 @@ class PregnancyDashboard extends StatefulWidget {
     required this.conditionLabel,
     required this.trimester,
     this.weight,
+    required this.todaySteps,
     required this.onTabChange,
   });
 
@@ -50,7 +52,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
 
   Future<void> _initializeStepTracker() async {
     await _stepService.initialize();
-    
+
     // Listen to step count updates
     _stepSubscription = _stepService.stepCountStream.listen((steps) {
       if (mounted) {
@@ -59,7 +61,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
         });
       }
     });
-    
+
     // Get initial step count
     if (mounted) {
       setState(() {
@@ -76,10 +78,10 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Load weight
     final savedWeight = prefs.getDouble('userWeight');
-    
+
     // Load trimester if empty
     String? savedTrimester;
     if (trimester.isEmpty) {
@@ -132,12 +134,18 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
             InkWell(
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const ConditionSelectionScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const ConditionSelectionScreen(),
+                  ),
                 );
               },
               child: const Padding(
                 padding: EdgeInsets.all(8.0),
-                child: Icon(Icons.swap_horiz, size: 20, color: Color(0xFF7A8FA6)),
+                child: Icon(
+                  Icons.swap_horiz,
+                  size: 20,
+                  color: Color(0xFF7A8FA6),
+                ),
               ),
             ),
           ],
@@ -396,7 +404,9 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
                 icon: Icons.monitor_weight,
                 iconColor: Colors.brown,
                 label: 'WEIGHT',
-                value: _localWeight != null ? '${_localWeight!.toStringAsFixed(1)} kg' : 'Add weight',
+                value: _localWeight != null
+                    ? '${_localWeight!.toStringAsFixed(1)} kg'
+                    : 'Add weight',
                 subValue: _localWeight != null ? '+0.2kg this week' : null,
               ),
             ),
@@ -406,13 +416,17 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
                 icon: Icons.directions_run,
                 iconColor: Colors.teal,
                 label: 'ACTIVITY',
-                value: _todaySteps > 0 ? '${_todaySteps.toStringAsFixed(0)} steps' : '0 steps',
+                value: _todaySteps > 0
+                    ? '${_todaySteps.toStringAsFixed(0)} steps'
+                    : '0 steps',
                 showProgress: true,
                 progressValue: _todaySteps / 8000,
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const StepTrackerScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const StepTrackerScreen(),
+                    ),
                   );
                 },
               ),
@@ -469,7 +483,9 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
                     width: 6,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: index < 5 ? const Color(0xFF2E4A6B) : Colors.grey[200],
+                      color: index < 5
+                          ? const Color(0xFF2E4A6B)
+                          : Colors.grey[200],
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -486,7 +502,9 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const PregnancyInsightsScreen()),
+              MaterialPageRoute(
+                builder: (context) => const PregnancyInsightsScreen(),
+              ),
             );
           },
           child: Container(
@@ -500,51 +518,55 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
               ),
             ),
             child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: Color(0xFF3A6EA8),
+                    size: 20,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  color: Color(0xFF3A6EA8),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Smart Insight detected',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A2B3C),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Smart Insight detected',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A2B3C),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Your blood sugar levels are slightly high. Tap to see detailed recommendations.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF7A8FA6),
-                        height: 1.5,
+                      SizedBox(height: 4),
+                      Text(
+                        'Your blood sugar levels are slightly high. Tap to see detailed recommendations.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF7A8FA6),
+                          height: 1.5,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF7A8FA6)),
-            ],
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: Color(0xFF7A8FA6),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
 
         const SizedBox(height: 24),
 
@@ -560,12 +582,13 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
         ),
         const SizedBox(height: 14),
         GridView.count(
-          crossAxisCount: 4,
+          crossAxisCount: 3,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 0.8, // Adjusted to get closer to 90px height on standard screens
+          childAspectRatio:
+              0.9, // Adjusted for 3 columns
           children: [
             _quickAction(
               icon: Icons.auto_awesome,
@@ -575,7 +598,9 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PregnancyInsightsScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const PregnancyInsightsScreen(),
+                  ),
                 );
               },
             ),
@@ -587,7 +612,9 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const ChatbotScreen(),
+                  ),
                 );
               },
             ),
@@ -599,16 +626,11 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const DietPlannerScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const DietPlannerScreen(),
+                  ),
                 );
               },
-            ),
-            _quickAction(
-              icon: Icons.calendar_month,
-              label: 'Tracking',
-              color: const Color(0xFFD68A3D),
-              bgColor: const Color(0xFFFDF3E9),
-              onTap: () => onTabChange(2),
             ),
           ],
         ),
@@ -710,7 +732,9 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(2),
                 child: LinearProgressIndicator(
-                  value: progressValue != null ? progressValue.clamp(0.0, 1.0) : 0.6,
+                  value: progressValue != null
+                      ? progressValue.clamp(0.0, 1.0)
+                      : 0.6,
                   backgroundColor: Colors.grey[100],
                   color: Colors.teal,
                   minHeight: 4,

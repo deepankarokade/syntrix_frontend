@@ -16,6 +16,9 @@ import '../diet/diet_planner_screen.dart';
 import '../dashboard/pcos_dashboard.dart';
 import '../dashboard/pregnancy_dashboard.dart';
 import '../dashboard/menopause_dashboard.dart';
+import '../step_tracker/step_tracker_screen.dart';
+import '../../services/step_tracker_service.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,10 +50,37 @@ class _HomeScreenState extends State<HomeScreen> {
     'none': 'General Tracking',
   };
 
+  int _todaySteps = 0;
+  final StepTrackerService _stepService = StepTrackerService();
+  StreamSubscription? _stepSubscription;
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _initializeStepTracker();
+  }
+
+  Future<void> _initializeStepTracker() async {
+    await _stepService.initialize();
+    _stepSubscription = _stepService.stepCountStream.listen((steps) {
+      if (mounted) {
+        setState(() {
+          _todaySteps = steps;
+        });
+      }
+    });
+    if (mounted) {
+      setState(() {
+        _todaySteps = _stepService.todaySteps;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _stepSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -330,6 +360,7 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
             nextPeriodDays: _nextPeriodDays,
             nextPeriodDateStr: _nextPeriodDateStr,
             phaseName: _phaseName,
+            todaySteps: _todaySteps,
             onTabChange: (index) => setState(() => _currentTab = index),
           );
         } else if (_lifeStage == 'pregnant') {
@@ -338,6 +369,7 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
             conditionLabel: _conditionLabel,
             trimester: _trimester,
             weight: _weight,
+            todaySteps: _todaySteps,
             onTabChange: (index) => setState(() => _currentTab = index),
           );
         } else if (_lifeStage == 'menopause') {
@@ -345,6 +377,7 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
             userName: _userName,
             conditionLabel: _conditionLabel,
             weight: _weight,
+            todaySteps: _todaySteps,
             onTabChange: (index) => setState(() => _currentTab = index),
           );
         } else {
@@ -542,12 +575,20 @@ Respond ONLY with a valid JSON matching exactly this structure, no markdown, no 
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _statCard(
-                        icon: Icons.bolt,
-                        iconColor: const Color(0xFFB5616A),
-                        label: 'Energy',
-                        value: 'Low',
-                        valueColor: const Color(0xFFB5616A),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const StepTrackerScreen()),
+                          );
+                        },
+                        child: _statCard(
+                          icon: Icons.directions_run,
+                          iconColor: const Color(0xFF2E7D6B),
+                          label: 'Activity',
+                          value: '$_todaySteps',
+                          valueColor: const Color(0xFF2E7D6B),
+                        ),
                       ),
                     ),
                   ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/ai_service.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class PregnancyInsightsScreen extends StatefulWidget {
   final int pregnancyWeek;
@@ -11,6 +13,8 @@ class PregnancyInsightsScreen extends StatefulWidget {
 
 class _PregnancyInsightsScreenState extends State<PregnancyInsightsScreen> {
   int _currentWeek = 24;
+  String? _aiInsight;
+  bool _isLoadingAi = false;
 
   @override
   void initState() {
@@ -26,6 +30,23 @@ class _PregnancyInsightsScreenState extends State<PregnancyInsightsScreen> {
       setState(() {
         if (savedWeek != null) _currentWeek = savedWeek;
       });
+    }
+  }
+
+  Future<void> _fetchAiInsights() async {
+    setState(() => _isLoadingAi = true);
+    try {
+      String contextStr = await AiService.getGroundingContext();
+      String prompt = "You are a clinical AI for pregnancy tracking. The user is currently at week $_currentWeek. Calculate the approximate remaining weeks until the exact due date. Suggest 3 concrete recommendations specifically based on any clinical anomalies in these logs:\n\n$contextStr\n\nReturn the response formatted strictly as clean Markdown.";
+      
+      String? result = await AiService.sendMessage(messages: [{"role": "user", "content": prompt}]);
+      if (mounted && result != null) {
+         setState(() => _aiInsight = result);
+      }
+    } catch(e) {
+      if (mounted) setState(() => _aiInsight = "Failed to load clinical AI pregnancy analysis.");
+    } finally {
+      if (mounted) setState(() => _isLoadingAi = false);
     }
   }
 
@@ -67,77 +88,70 @@ class _PregnancyInsightsScreenState extends State<PregnancyInsightsScreen> {
 
             const SizedBox(height: 32),
 
-            // ── Smart Insights Section ────────────────────────────────
-            const Text(
-              'Smart Insights',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1A2B3C),
-              ),
+            // ── Smart AI Insights Section ────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Smart AI Insights',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1A2B3C),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _isLoadingAi ? null : _fetchAiInsights,
+                  icon: _isLoadingAi 
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.auto_awesome, size: 18, color: Color(0xFF3A6EA8)),
+                  label: Text(_isLoadingAi ? 'Loading...' : 'Generate AI Insights', style: const TextStyle(color: Color(0xFF3A6EA8))),
+                )
+              ],
             ),
             const SizedBox(height: 16),
 
-            // Logic based insight cards
-            if (bloodSugar > 120)
-              _buildInsightCard(
-                title: 'Blood sugar slightly high',
-                desc: 'Your levels are above target. Consider reducing sugar intake and increase gentle walking.',
-                status: 'Warning',
-                icon: Icons.water_drop_outlined,
-                iconColor: const Color(0xFFB5616A),
-                bgColor: const Color(0xFFFFF0F0),
-              ),
-            
-            if (steps < 5000)
-              _buildInsightCard(
-                title: 'Activity level low',
-                desc: 'Regular movement helps glucose control. Try a 15-minute walk after meals.',
-                status: 'Warning',
-                icon: Icons.directions_run_rounded,
-                iconColor: const Color(0xFFD68A3D),
-                bgColor: const Color(0xFFFDF3E9),
+            if (_aiInsight == null && !_isLoadingAi)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange),
+                    SizedBox(width: 10),
+                    Expanded(child: Text("Push the Generate button to analyze your clinical logs and calculate precise due date insights.", style: TextStyle(color: Colors.orange))),
+                  ],
+                ),
               ),
 
-            if (weightGain < 0.5)
-              _buildInsightCard(
-                title: 'Stable weight trend',
-                desc: 'Your weight gain is within the healthy range for this week.',
-                status: 'Normal',
-                icon: Icons.monitor_weight_outlined,
-                iconColor: const Color(0xFF2E7D6B),
-                bgColor: const Color(0xFFE0F4F0),
-              ),
-            
-            _buildInsightCard(
-              title: 'Consistent tracking',
-              desc: 'Great job logging your data daily! This helps provide better insights.',
-              status: 'Normal',
-              icon: Icons.check_circle_outline,
-              iconColor: const Color(0xFF3A6EA8),
-              bgColor: const Color(0xFFE8F0F8),
-            ),
-
-            const SizedBox(height: 32),
-
-            // ── Category Sections ─────────────────────────────────────
-            _buildSectionHeader('Lifestyle Tips'),
-            const SizedBox(height: 16),
-            _recommendationTile(
-              icon: Icons.restaurant_rounded,
-              iconColor: const Color(0xFFB5616A),
-              label: 'Focus on Low-GI snacks',
-            ),
-            _recommendationTile(
-              icon: Icons.nightlight_round,
-              iconColor: const Color(0xFF3A6EA8),
-              label: 'Aim for 8 hours of sleep',
-            ),
-            _recommendationTile(
-              icon: Icons.local_drink,
-              iconColor: const Color(0xFF4AC2CD),
-              label: 'Stay hydrated (2.5L target)',
-            ),
+             if (_aiInsight != null)
+               Container(
+                 padding: const EdgeInsets.all(20),
+                 decoration: BoxDecoration(
+                   color: Colors.white,
+                   borderRadius: BorderRadius.circular(20),
+                   border: Border.all(color: const Color(0xFF3A6EA8).withValues(alpha: 0.2)),
+                   boxShadow: [
+                     BoxShadow(
+                       color: Colors.black.withValues(alpha: 0.04),
+                       blurRadius: 14,
+                       offset: const Offset(0, 6),
+                     ),
+                   ],
+                 ),
+                 child: MarkdownBody(
+                   data: _aiInsight!,
+                   styleSheet: MarkdownStyleSheet(
+                     p: const TextStyle(fontSize: 14, color: Color(0xFF1A2B3C), height: 1.5),
+                     h1: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2E4A6B)),
+                     h2: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF3A6EA8)),
+                   ),
+                 ),
+               ),
 
             const SizedBox(height: 40),
           ],

@@ -3,6 +3,7 @@ import '../logs/calendar_screen.dart';
 import '../report/reports_screen.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
+import '../step_tracker/step_tracker_screen.dart';
 
 import '../onboarding/condition_selection_screen.dart';
 
@@ -14,6 +15,7 @@ class PCOSDashboard extends StatelessWidget {
   final int? nextPeriodDays;
   final String? nextPeriodDateStr;
   final String phaseName;
+  final int todaySteps;
   final Function(int) onTabChange;
 
   const PCOSDashboard({
@@ -25,6 +27,7 @@ class PCOSDashboard extends StatelessWidget {
     this.nextPeriodDays,
     this.nextPeriodDateStr,
     this.phaseName = 'Follicular Phase',
+    required this.todaySteps,
     required this.onTabChange,
   });
 
@@ -217,12 +220,20 @@ class PCOSDashboard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _statCard(
-                icon: Icons.bolt,
-                iconColor: const Color(0xFFB5616A),
-                label: 'Energy',
-                value: 'Low',
-                valueColor: const Color(0xFFB5616A),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const StepTrackerScreen()),
+                  );
+                },
+                child: _statCard(
+                  icon: Icons.directions_run,
+                  iconColor: const Color(0xFF2E7D6B),
+                  label: 'Activity',
+                  value: '$todaySteps',
+                  valueColor: const Color(0xFF2E7D6B),
+                ),
               ),
             ),
           ],
