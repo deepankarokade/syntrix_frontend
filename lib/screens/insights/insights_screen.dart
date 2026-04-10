@@ -262,6 +262,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
+
   // ── Health Assessment Card ─────────────────────────────────────────────────
   Widget _buildAssessmentCard() {
     final cat   = _result?.category;

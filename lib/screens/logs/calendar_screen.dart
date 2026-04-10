@@ -9,7 +9,7 @@ import 'package:open_filex/open_filex.dart';
 import 'dart:convert';
 import 'log_entry_screen.dart';
 import '../report/reports_screen.dart';
-import '../../services/ai_service.dart';
+import '../../services/cycle_prediction_service.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -117,7 +117,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       DateTime? predictedDate;
       if (lastPeriodDate != null) {
-        predictedDate = lastPeriodDate.add(const Duration(days: 28));
+        // Fetch real calculations from the service
+        final cycleData = await CyclePredictionService.getCycleData(user!.uid);
+        predictedDate = cycleData.nextPeriodDate;
       }
 
       if (mounted) {
@@ -126,59 +128,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
           _predictedNextPeriodDate = predictedDate;
           _loading = false;
         });
-      }
-
-      // Add AI prediction for calendar
-      if (periodDates.isNotEmpty) {
-        periodDates.sort();
-        List<String> startDates = [];
-        DateTime? lastStart;
-        for (var d in periodDates) {
-          if (lastStart == null || d.difference(lastStart).inDays > 10) {
-            startDates.add(
-              "\${d.year}-\${d.month.toString().padLeft(2, '0')}-\${d.day.toString().padLeft(2, '0')}",
-            );
-            lastStart = d;
-          }
-        }
-
-        final now = DateTime.now();
-        String todayStr =
-            "\${now.year}-\${now.month.toString().padLeft(2, '0')}-\${now.day.toString().padLeft(2, '0')}";
-
-        String aiPrompt = '''
-You are a Medical AI calculating the menstrual cycle.
-Past period start dates: \${startDates.join(', ')}
-Today's date: \$todayStr
-
-Please analyze these dates, predict the next cycle start date based on patterns.
-Respond ONLY with a valid JSON matching exactly this structure, no markdown, no extra text:
-{
-  "predictedNextPeriodDate": "<YYYY-MM-DD>"
-}
-''';
-        try {
-          final aiResponse = await AiService.sendMessage(
-            messages: [
-              {"role": "user", "content": aiPrompt},
-            ],
-          );
-          if (aiResponse != null && mounted) {
-            String cleanJSON = aiResponse
-                .replaceAll('```json', '')
-                .replaceAll('```', '')
-                .trim();
-            Map<String, dynamic> aiData = jsonDecode(cleanJSON);
-            DateTime aiNextDate = DateTime.parse(
-              aiData['predictedNextPeriodDate'],
-            );
-            setState(() {
-              _predictedNextPeriodDate = aiNextDate;
-            });
-          }
-        } catch (e) {
-          print("AI calendar prediction error: \$e");
-        }
       }
     } catch (e) {
       print("Error fetching month logs: $e");

@@ -14,7 +14,8 @@ class PCOSDashboard extends StatelessWidget {
   final int? cycleDay;
   final int? nextPeriodDays;
   final String? nextPeriodDateStr;
-  final String phaseName;
+  final String? phaseName;
+  final bool? isIrregular;
   final int todaySteps;
   final Function(int) onTabChange;
 
@@ -26,7 +27,8 @@ class PCOSDashboard extends StatelessWidget {
     this.cycleDay,
     this.nextPeriodDays,
     this.nextPeriodDateStr,
-    this.phaseName = 'Follicular Phase',
+    this.phaseName,
+    this.isIrregular,
     required this.todaySteps,
     required this.onTabChange,
   });
@@ -150,33 +152,41 @@ class PCOSDashboard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Next Period',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.white60,
-                          ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Next Period',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white60,
                         ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        nextPeriodDays != null
+                            ? (nextPeriodDays! < 0
+                                ? 'Late by ${-nextPeriodDays!} days'
+                                : '$nextPeriodDays Days')
+                            : '-- Days',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (nextPeriodDateStr != null) ...[
                         const SizedBox(height: 2),
                         Text(
-                          nextPeriodDays != null
-                              ? '${nextPeriodDays! < 0 ? 'Late by ${-nextPeriodDays!}' : nextPeriodDays} Days\\nEst. ${nextPeriodDateStr ?? '--'}'
-                              : '-- Days\\nEst. --',
+                          'Est. $nextPeriodDateStr',
                           style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            height: 1.3,
+                            fontSize: 11,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                    ),
+                    ],
                   ),
                   const SizedBox(width: 8),
                   Container(
@@ -189,7 +199,7 @@ class PCOSDashboard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      phaseName,
+                      phaseName ?? 'Tracking',
                       style: const TextStyle(
                         fontSize: 13,
                         color: Colors.white,
@@ -242,62 +252,63 @@ class PCOSDashboard extends StatelessWidget {
         const SizedBox(height: 16),
 
         // ── Insight card ──────────────────────────────────────
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF0F0),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFFFD0D0),
-              width: 1,
+        if (isIrregular == true) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF0F0),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFFFD0D0),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFE5E5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFB5616A),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Insight Detected',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A2B3C),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Cycle irregularity detected. This can be common with PCOS; consider tracking your cortisol levels this week.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF7A8FA6),
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFE5E5),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.warning_amber_rounded,
-                  color: Color(0xFFB5616A),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Insight Detected',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A2B3C),
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Cycle irregularity detected. This can be common with PCOS; consider tracking your cortisol levels this week.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF7A8FA6),
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
+        ],
 
         // ── Quick Actions ─────────────────────────────────────
         const Text(
@@ -498,25 +509,28 @@ class PCOSDashboard extends StatelessWidget {
       child: Container(
         height: 90,
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey.withValues(alpha: 0.2),
-            width: 1,
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.85),
+              color,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 6),
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(height: 8),
             Text(
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF3D5166),
-                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
                 height: 1.2,
               ),
             ),

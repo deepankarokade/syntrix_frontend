@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../home/home_screen.dart';
 import '../../services/user_session.dart';
+import '../../services/cycle_prediction_service.dart';
 
 class LogEntryScreen extends StatefulWidget {
   final DateTime? editDate;
@@ -35,7 +36,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   String _periodDay = 'Day 1';
   String? _flowIntensity = 'Medium';
   String? _selectedPhase;
-  final Map<String, String> _selectedSymptoms = {}; // { 'Acne': 'Mild' }
+  final Map<String, String> _selectedSymptoms = {};
   String? _selectedMood;
   final TextEditingController _weightCtrl = TextEditingController();
   final TextEditingController _bloodSugarCtrl = TextEditingController();
@@ -50,6 +51,10 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   bool _irregularBleeding = false;
   bool _spotting = false;
   final TextEditingController _medicationNameCtrl = TextEditingController();
+
+  // Calendar picker state
+  Map<String, Map<String, dynamic>> _periodLogs = {};
+  DateTime? _predictedNextPeriod;
 
   // ── Pregnancy-specific fields ──
   String _nausea = 'None';
@@ -71,6 +76,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
     super.initState();
     _selectedLogDate = widget.editDate ?? DateTime.now();
     _fetchUserProfile();
+    _fetchPeriodLogs();
     if (widget.existingData != null) {
       _populateEditData();
     }
@@ -107,6 +113,34 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
         });
       }
     });
+  }
+
+  Future<void> _fetchPeriodLogs() async {
+    if (user == null) return;
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('logs')
+          .doc(user!.uid)
+          .collection('daily_entries')
+          .get();
+      Map<String, Map<String, dynamic>> logs = {};
+      for (var doc in snapshot.docs) {
+        String dateStr = doc.id.split('_').first;
+        var data = doc.data();
+        if (logs[dateStr] == null || data['isOnPeriod'] == true) {
+          logs[dateStr] = data;
+        }
+      }
+      final cycleData = await CyclePredictionService.getCycleData(user!.uid);
+      if (mounted) {
+        setState(() {
+          _periodLogs = logs;
+          _predictedNextPeriod = cycleData.nextPeriodDate;
+        });
+      }
+    } catch (e) {
+      print('Log entry: error loading period logs: $e');
+    }
   }
 
   Future<void> _fetchUserProfile() async {
@@ -291,17 +325,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
               ),
               const SizedBox(height: 8),
               GestureDetector(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedLogDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
-                  );
-                  if (picked != null) {
-                    setState(() => _selectedLogDate = picked);
-                  }
-                },
+                onTap: () => _showCustomDatePicker(),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
@@ -723,6 +747,229 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
 
   // ── Helper UI Components ──
 
+
+  void _showCustomDatePicker() {
+    DateTime sheetMonth = DateTime(_selectedLogDate.year, _selectedLogDate.month);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final today = DateTime.now();
+            final firstDay = DateTime(sheetMonth.year, sheetMonth.month, 1);
+            final daysInMonth = DateTime(sheetMonth.year, sheetMonth.month + 1, 0).day;
+            final startWeekday = firstDay.weekday % 7; // 0=Sun
+
+            List<Widget> dayCells = [];
+            // Empty leading cells
+            for (int i = 0; i < startWeekday; i++) {
+              dayCells.add(const SizedBox());
+            }
+            for (int d = 1; d <= daysInMonth; d++) {
+              final dt = DateTime(sheetMonth.year, sheetMonth.month, d);
+              final dateStr = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+              final logData = _periodLogs[dateStr];
+              final isOnPeriod = logData != null && logData['isOnPeriod'] == true;
+              final hasLog = logData != null;
+              final isToday = dt.year == today.year && dt.month == today.month && dt.day == today.day;
+              final isSelected = dt.year == _selectedLogDate.year && dt.month == _selectedLogDate.month && dt.day == _selectedLogDate.day;
+              final isFuture = dt.isAfter(today);
+
+              // Predicted window: next period ± 2 days
+              bool isPredicted = false;
+              if (_predictedNextPeriod != null && !isOnPeriod) {
+                final diff = dt.difference(_predictedNextPeriod!).inDays.abs();
+                isPredicted = diff <= 2;
+              }
+
+              Color bgColor = Colors.transparent;
+              Color textColor = isFuture ? const Color(0xFFB0BEC5) : const Color(0xFF1A2B3C);
+              BoxBorder? border;
+
+              if (isOnPeriod) {
+                bgColor = const Color(0xFFFFCDD2);
+                textColor = const Color(0xFFB5616A);
+              } else if (isPredicted) {
+                bgColor = const Color(0xFFFFECEC);
+                textColor = const Color(0xFFB5616A);
+              } else if (hasLog) {
+                bgColor = const Color(0xFFE3F2FD);
+                textColor = const Color(0xFF1E5BB1);
+              }
+
+              if (isToday) {
+                border = Border.all(color: const Color(0xFF1E5BB1), width: 2);
+              }
+              if (isSelected) {
+                bgColor = const Color(0xFF1E5BB1);
+                textColor = Colors.white;
+                border = null;
+              }
+
+              dayCells.add(
+                GestureDetector(
+                  onTap: isFuture ? null : () {
+                    setSheetState(() {});
+                    setState(() => _selectedLogDate = dt);
+                    Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      shape: BoxShape.circle,
+                      border: border,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$d',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected || isToday ? FontWeight.w700 : FontWeight.w500,
+                          color: textColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF4F6FA),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDDE5EE),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Month navigation
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left, color: Color(0xFF1E5BB1)),
+                        onPressed: () => setSheetState(() {
+                          sheetMonth = DateTime(sheetMonth.year, sheetMonth.month - 1);
+                        }),
+                      ),
+                      Text(
+                        DateFormat('MMMM yyyy').format(sheetMonth),
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E5BB1),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right, color: Color(0xFF1E5BB1)),
+                        onPressed: sheetMonth.isBefore(DateTime(today.year, today.month))
+                            ? null
+                            : () => setSheetState(() {
+                                sheetMonth = DateTime(sheetMonth.year, sheetMonth.month + 1);
+                              }),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Calendar card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Days of week header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                              .map((d) => SizedBox(
+                                    width: 36,
+                                    child: Center(
+                                      child: Text(d,
+                                        style: const TextStyle(
+                                          color: Color(0xFFA0B1C5),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ))
+                              .toList(),
+                        ),
+                        const SizedBox(height: 8),
+                        // Grid
+                        GridView.count(
+                          crossAxisCount: 7,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          childAspectRatio: 1,
+                          children: dayCells,
+                        ),
+                        const SizedBox(height: 12),
+                        // Legend
+                        Wrap(
+                          spacing: 14,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _legendDot(const Color(0xFFFFCDD2), 'Period'),
+                            _legendDot(const Color(0xFFFFECEC), 'Predicted'),
+                            _legendDot(const Color(0xFFE3F2FD), 'Logged'),
+                            _legendDot(Colors.white, 'Today', border: const Color(0xFF1E5BB1)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _legendDot(Color color, String label, {Color? border}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12, height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: border != null ? Border.all(color: border, width: 1.5) : null,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF7A8FA6))),
+      ],
+    );
+  }
 
   Widget _sectionHeader(String title) {
     return Text(
