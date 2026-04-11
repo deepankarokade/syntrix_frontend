@@ -261,4 +261,108 @@ class HealthDataService {
       return null;
     }
   }
+
+  // ── Helper Categorization ──────────────────────────────────────────────
+  static int _scoreBmi(double bmi) {
+    if (bmi < 18.5) return 0; // Bad
+    if (bmi >= 18.5 && bmi <= 24.9) return 2; // Best
+    if (bmi >= 25.0 && bmi <= 29.9) return 1; // Good
+    return 0; // Bad
+  }
+
+  static int _scoreWhr(double whr) {
+    if (whr < 0.80) return 2; // Best
+    if (whr >= 0.80 && whr <= 0.85) return 1; // Good
+    return 0; // Bad
+  }
+
+  // ── Historical Data Fetch ──────────────────────────────────────────────
+  Future<List<HealthMetricPoint>> fetchHistoricalMetrics({int days = 30}) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return [];
+
+    try {
+      // 1. Get user profile for base height/weight
+      final userDoc = await _db.collection('users').doc(uid).get();
+      final userData = userDoc.data() ?? {};
+      final baseWeight = _toDouble(userData['weight']) ?? 65.0;
+      final heightCm = _toDouble(userData['height']) ?? 160.0;
+      final heightM = heightCm / 100.0;
+      final baseBmi = baseWeight / (heightM * heightM);
+
+      // 2. Fetch past X logs
+      final logsSnap = await _db
+          .collection('logs')
+          .doc(uid)
+          .collection('daily_entries')
+          .orderBy('timestamp', descending: true)
+          .limit(days)
+          .get();
+
+      if (logsSnap.docs.isEmpty) return [];
+
+      List<HealthMetricPoint> points = [];
+
+      // Start traversing from oldest to newest (reversed)
+      for (var doc in logsSnap.docs.reversed) {
+        final data = doc.data();
+        DateTime date;
+        if (data['timestamp'] is Timestamp) {
+          date = (data['timestamp'] as Timestamp).toDate();
+        } else if (data['date'] != null) {
+          date = DateTime.parse(data['date'] as String);
+        } else {
+          continue; // skip if no recognizable date
+        }
+
+        // Metrics for this day
+        final dWeight = _toDouble(data['weight']) ?? baseWeight;
+        final dBmi = dWeight / (heightM * heightM);
+
+        double dWhr = _defaultWhr; // Default if neither logged
+        final dWaist = _toDouble(data['waist']);
+        final dHip = _toDouble(data['hip']);
+        if (dWaist != null && dHip != null && dHip > 0) {
+          dWhr = dWaist / dHip;
+        }
+
+        points.add(
+          HealthMetricPoint(
+            date: date,
+            bmiScore: _scoreBmi(dBmi),
+            weightScore: _scoreBmi(dBmi), // Weight health is 1:1 tied to BMI physically
+            whrScore: _scoreWhr(dWhr),
+            rawBmi: dBmi,
+            rawWeight: dWeight,
+            rawWhr: dWhr,
+          ),
+        );
+      }
+
+      return points;
+    } catch (e) {
+      print('HealthDataService fetchHistoricalMetrics error: $e');
+      return [];
+    }
+  }
+}
+
+class HealthMetricPoint {
+  final DateTime date;
+  final int bmiScore;
+  final int weightScore;
+  final int whrScore;
+  final double rawBmi;
+  final double rawWeight;
+  final double rawWhr;
+
+  HealthMetricPoint({
+    required this.date,
+    required this.bmiScore,
+    required this.weightScore,
+    required this.whrScore,
+    required this.rawBmi,
+    required this.rawWeight,
+    required this.rawWhr,
+  });
 }

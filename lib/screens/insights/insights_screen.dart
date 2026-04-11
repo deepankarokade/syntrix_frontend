@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../services/health_data_service.dart';
 import '../../services/pcos_predictor.dart';
 import '../../services/health_insight_service.dart';
+import '../../widgets/health_metrics_chart.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -19,6 +21,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
   String? _error;
   PcosResult? _result;
 
+  List<HealthMetricPoint> _historicalMetrics = [];
+  bool _loadingMetrics = true;
+
   @override
   void initState() {
     super.initState();
@@ -29,7 +34,21 @@ class _InsightsScreenState extends State<InsightsScreen> {
     await Future.wait([
       _loadPrediction(),
       _loadAiInsights(),
+      _loadHistory(),
     ]);
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() => _loadingMetrics = true);
+    final metrics = await _service.fetchHistoricalMetrics(days: 30);
+    if (mounted) {
+      setState(() {
+        _historicalMetrics = metrics;
+        // Sort by date ascending for the chart
+        _historicalMetrics.sort((a, b) => a.date.compareTo(b.date));
+        _loadingMetrics = false;
+      });
+    }
   }
 
   Future<void> _loadPrediction() async {
@@ -201,6 +220,19 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         ),
                         const SizedBox(height: 16),
                         _buildTrendSummary(),
+                        const SizedBox(height: 32),
+
+                        // ── Historical Health Graph ──────────────────────
+                        const Text(
+                          'Historical Health Metrics',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1A2B3C),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const HealthMetricsChart(),
 
                         const SizedBox(height: 32),
 

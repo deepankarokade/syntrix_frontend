@@ -261,53 +261,51 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 24),
-
-        // ── Top bar ──────────────────────────────────────────
-        Row(
-          children: [
-            Image.asset(
-              'assets/images/logo/logo.png',
-              width: 28,
-              height: 28,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Sakhi – $conditionLabel',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2E4A6B),
+        // ── App Bar ──────────────────────────────────────────────
+        SafeArea(
+          bottom: false,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 10, 20, 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
+              ],
             ),
-            const SizedBox(width: 4),
-            InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ConditionSelectionScreen(),
+            child: Row(
+              children: [
+                Image.asset(
+                  'assets/images/logo/logo.png',
+                  width: 32,
+                  height: 32,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Sakhi – $conditionLabel',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2E4A6B),
                   ),
-                );
-              },
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Icon(
-                  Icons.swap_horiz,
-                  size: 20,
-                  color: Color(0xFF7A8FA6),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
 
+        // ── Scrollable Content ────────────────────────────────────
+        Expanded(
+          child: ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
         const SizedBox(height: 22),
 
         // ── Greeting ─────────────────────────────────────────
@@ -692,7 +690,10 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
 
         const SizedBox(height: 30),
       ],
-    );
+    ), // ListView
+        ), // Expanded
+      ],
+    ); // Column
   }
 
   Widget _quickAction({

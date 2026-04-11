@@ -20,6 +20,7 @@ import '../dashboard/pregnancy_dashboard.dart';
 import '../dashboard/menopause_dashboard.dart';
 import '../step_tracker/step_tracker_screen.dart';
 import '../../services/step_tracker_service.dart';
+import '../../widgets/health_metrics_chart.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
@@ -315,36 +316,49 @@ class _HomeScreenState extends State<HomeScreen> {
     return SafeArea(
       child: _loadingUser
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 24),
-
-                // ── Top bar ──────────────────────────────────────────
-                Row(
-                  children: [
-                    Image.asset(
-                      'assets/images/logo/logo.png',
-                      width: 28,
-                      height: 28,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
+                // ── App Bar ──────────────────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 20, 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/images/logo/logo.png',
+                        width: 32,
+                        height: 32,
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
                         'Sakhi',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF2E4A6B),
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
 
-                const SizedBox(height: 22),
+                // ── Scrollable Content ────────────────────────────────────
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      const SizedBox(height: 22),
 
                 // ── Greeting ─────────────────────────────────────────
                 Text(
@@ -606,14 +620,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
 
-                const SizedBox(height: 40),
-
+                const SizedBox(height: 32),
+                const Text(
+                  'Health Trends',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1A2B3C),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const HealthMetricsChart(),
 
                 const SizedBox(height: 30),
 
-              ],
-            ),
-    );
+                    ], // ListView children
+                  ), // ListView
+                ), // Expanded
+              ], // Column children
+            ), // Column
+    ); // SafeArea
   }
 
   // ── Stat card ────────────────────────────────────────────────────────
