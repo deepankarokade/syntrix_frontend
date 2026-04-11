@@ -234,26 +234,12 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
     return 'Watermelon';
   }
 
-  String _getBabyEmojiForWeek(int week) {
-    if (week <= 4) return '🌱';
-    if (week <= 6) return '🫛';
-    if (week <= 8) return '🫐';
-    if (week <= 10) return '🍇';
-    if (week <= 12) return '🍋';
-    if (week <= 14) return '🍋';
-    if (week <= 16) return '🥑';
-    if (week <= 18) return '🫑';
-    if (week <= 20) return '🍌';
-    if (week <= 22) return '🥭';
-    if (week <= 24) return '🌽';
-    if (week <= 26) return '🥬';
-    if (week <= 28) return '🍆';
-    if (week <= 30) return '🥥';
-    if (week <= 32) return '🎃'; // standard emoji used here
-    if (week <= 34) return '🍍';
-    if (week <= 36) return '🍈';
-    if (week <= 38) return '🎃';
-    return '🍉';
+  String _getBabyImageForWeek(int week) {
+    // Map weeks to phase images (1-16)
+    // Weeks 1-40 mapped to 16 phases
+    int phase = ((week - 1) / 2.5).floor() + 1;
+    phase = phase.clamp(1, 16);
+    return 'lib/resources/assets/pregnancy/phase_$phase.png';
   }
 
   String _getBabyLengthForWeek(int week) {
@@ -473,7 +459,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
           builder: (context) {
             String babySize = _getBabySizeForWeek(_currentWeek);
             String babyLength = _getBabyLengthForWeek(_currentWeek);
-            String babyIcon = _getBabyEmojiForWeek(_currentWeek);
+            String babyImage = _getBabyImageForWeek(_currentWeek);
 
             return Container(
               padding: const EdgeInsets.all(16),
@@ -486,14 +472,25 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
                   Container(
                     width: 80,
                     height: 80,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF4AC2CD),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4AC2CD).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
-                      child: Text(
-                        babyIcon,
-                        style: const TextStyle(fontSize: 40),
+                      child: ClipOval(
+                        child: Image.asset(
+                          babyImage,
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.baby_changing_station,
+                              size: 40,
+                              color: Color(0xFF4AC2CD),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),

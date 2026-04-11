@@ -84,6 +84,7 @@ flutter:
     - assets/images/logo/logo.png
     - assets/models/basic_model.tflite
     - assets/models/advanced_model.tflite
+    - lib/resources/assets/pregnancy/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
