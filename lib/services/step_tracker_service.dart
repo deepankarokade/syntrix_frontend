@@ -43,8 +43,44 @@ class StepTrackerService {
     final hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
+    // Check if we need to save previous day's data to Firestore
+    await _checkAndSavePreviousDayData();
+    
     await _loadSavedData();
     _startListening();
+  }
+
+  // ✅ Check if date changed and save previous day's data to Firestore
+  Future<void> _checkAndSavePreviousDayData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedDate = prefs.getString('last_step_date');
+      final savedSteps = prefs.getInt('last_day_steps') ?? 0;
+      final today = _getTodayDate();
+
+      // If date changed and we have steps from previous day, save to Firestore
+      if (savedDate != null && savedDate != today && savedSteps > 0) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('step_logs')
+              .doc(savedDate)
+              .set({
+                'date': savedDate,
+                'steps': savedSteps,
+                'goal': 8000,
+                'goalAchieved': savedSteps >= 8000,
+                'timestamp': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+          
+          print('✅ Saved previous day ($savedDate) steps: $savedSteps to Firestore');
+        }
+      }
+    } catch (e) {
+      print('Error saving previous day data: $e');
+    }
   }
 
   void _startListening() {
@@ -68,6 +104,11 @@ class StepTrackerService {
 
     // Reset steps at midnight
     if (_lastResetDate != today) {
+      // Save previous day's steps before resetting
+      if (_lastResetDate.isNotEmpty && _todaySteps > 0) {
+        await _savePreviousDaySteps(_lastResetDate, _todaySteps);
+      }
+      
       _initialStepCount = event.steps;
       _lastResetDate = today;
       await _saveResetData();
@@ -81,12 +122,15 @@ class StepTrackerService {
     if (_todaySteps < 0) _todaySteps = 0;
 
     _stepCountController.add(_todaySteps);
-    await _saveStepsLocally(_todaySteps);
-    
-    // Save to Firestore every 100 steps to reduce writes
-    if (_todaySteps % 100 == 0) {
-      await saveStepsToFirestore();
-    }
+    await _saveStepsLocally(_todaySteps, today);
+  }
+
+  // ✅ Save previous day's steps locally (will be synced to Firestore on next app open)
+  Future<void> _savePreviousDaySteps(String date, int steps) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_step_date', date);
+    await prefs.setInt('last_day_steps', steps);
+    print('💾 Saved locally - Date: $date, Steps: $steps');
   }
 
   void _onPedestrianStatus(PedestrianStatus event) {
@@ -101,7 +145,7 @@ class StepTrackerService {
     _pedestrianStatusController.add('stopped');
   }
 
-  // ✅ Save to Firestore daily
+  // ✅ Save to Firestore (now only called manually or on app close)
   Future<void> saveStepsToFirestore() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -120,6 +164,13 @@ class StepTrackerService {
             'goalAchieved': _todaySteps >= 8000,
             'timestamp': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
+      
+      // Also update the local "last saved" data
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_step_date', today);
+      await prefs.setInt('last_day_steps', _todaySteps);
+      
+      print('✅ Synced today\'s steps to Firestore: $_todaySteps');
     } catch (e) {
       print('Error saving steps: $e');
     }
@@ -176,9 +227,10 @@ class StepTrackerService {
   }
 
   // ✅ Local storage helpers
-  Future<void> _saveStepsLocally(int steps) async {
+  Future<void> _saveStepsLocally(int steps, String date) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('today_steps', steps);
+    await prefs.setString('current_step_date', date);
   }
 
   Future<void> _saveResetData() async {
@@ -196,45 +248,10 @@ class StepTrackerService {
       _initialStepCount = prefs.getInt('initial_step_count') ?? -1;
       _lastResetDate = savedDate;
       _todaySteps = prefs.getInt('today_steps') ?? 0;
+      _stepCountController.add(_todaySteps);
     } else {
       _lastResetDate = today;
-    }
-
-    // Load today's steps from Firestore
-    await _loadStepsFromFirestore();
-  }
-
-  // ✅ Load steps from Firestore on app start
-  Future<void> _loadStepsFromFirestore() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final today = _getTodayDate();
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('step_logs')
-          .doc(today)
-          .get()
-          .timeout(
-            const Duration(seconds: 3),
-            onTimeout: () => throw TimeoutException('Query timed out'),
-          );
-
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null && data['steps'] != null) {
-          _todaySteps = data['steps'] as int;
-          _stepCountController.add(_todaySteps);
-          
-          // Update local storage
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('today_steps', _todaySteps);
-        }
-      }
-    } catch (e) {
-      print('Error loading steps from Firestore: $e');
+      _todaySteps = 0;
     }
   }
 
