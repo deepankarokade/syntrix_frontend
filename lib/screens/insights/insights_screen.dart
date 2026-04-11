@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/health_data_service.dart';
 import '../../services/pcos_predictor.dart';
+import '../../services/health_insight_service.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -11,14 +12,20 @@ class InsightsScreen extends StatefulWidget {
 
 class _InsightsScreenState extends State<InsightsScreen> {
   final HealthDataService _service = HealthDataService();
-  PcosResult? _result;
-  bool _loading = true;
-  String? _error;
+  Map<String, dynamic>? _aiInsights;
+  bool _loadingAi = true;
 
   @override
   void initState() {
     super.initState();
-    _loadPrediction();
+    _loadAllData();
+  }
+
+  Future<void> _loadAllData() async {
+    await Future.wait([
+      _loadPrediction(),
+      _loadAiInsights(),
+    ]);
   }
 
   Future<void> _loadPrediction() async {
@@ -28,6 +35,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
       setState(() { _result = result; _loading = false; });
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  Future<void> _loadAiInsights({bool refresh = false}) async {
+    setState(() => _loadingAi = true);
+    final insights = await HealthInsightService.generateInsights(refresh: refresh);
+    if (mounted) {
+      setState(() {
+        _aiInsights = insights;
+        _loadingAi = false;
+      });
     }
   }
 
@@ -72,7 +90,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loadPrediction,
+            onPressed: () => _loadAllData(),
             tooltip: 'Refresh assessment',
           ),
         ],
@@ -109,7 +127,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   ),
                 )
               : RefreshIndicator(
-                  onRefresh: _loadPrediction,
+                  onRefresh: _loadAllData,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -192,21 +210,19 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _recommendationTile(
-                          icon: Icons.directions_run_rounded,
-                          iconColor: const Color(0xFF3A6EA8),
-                          label: 'Increase daily activity',
-                        ),
-                        _recommendationTile(
-                          icon: Icons.restaurant_rounded,
-                          iconColor: const Color(0xFFB5616A),
-                          label: 'Maintain balanced diet',
-                        ),
-                        _recommendationTile(
-                          icon: Icons.calendar_today_rounded,
-                          iconColor: const Color(0xFF2E7D6B),
-                          label: 'Track symptoms regularly',
-                        ),
+                        if (_loadingAi)
+                          const Center(child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: CircularProgressIndicator(),
+                          ))
+                        else if (_aiInsights != null && _aiInsights!['recommendations'] != null)
+                          ...( _aiInsights!['recommendations'] as List).map((rec) => _recommendationTile(
+                            icon: _getIconData(rec['icon']),
+                            iconColor: const Color(0xFF3A6EA8),
+                            label: rec['label'],
+                          ))
+                        else
+                          const Text('Record more logs to see personalized recommendations.'),
 
                         const SizedBox(height: 32),
 
@@ -220,24 +236,22 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        SizedBox(
-                          height: 220,
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                              _suggestedContentCard(
-                                category: 'EXERCISE',
-                                title: 'Low-impact Yoga for Follicular Phase',
-                                imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=600&auto=format&fit=crop',
-                              ),
-                              _suggestedContentCard(
-                                category: 'NUTRITION',
-                                title: 'Magnesium-Rich Recipes for Balance',
-                                imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=600&auto=format&fit=crop',
-                              ),
-                            ],
-                          ),
-                        ),
+                        if (_loadingAi)
+                           const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()))
+                        else if (_aiInsights != null && _aiInsights!['suggestedContent'] != null)
+                          SizedBox(
+                            height: 220,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: (_aiInsights!['suggestedContent'] as List).map((item) => _suggestedContentCard(
+                                category: item['category'],
+                                title: item['title'],
+                                imageUrl: item['imageUrl'],
+                              )).toList(),
+                            ),
+                          )
+                        else
+                          const Text('Check back soon for tailored wellness tips.'),
 
                         const SizedBox(height: 40),
                       ],
@@ -247,6 +261,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
+  IconData _getIconData(String? name) {
+    switch (name) {
+      case 'directions_run': return Icons.directions_run_rounded;
+      case 'restaurant': return Icons.restaurant_rounded;
+      case 'self_improvement': return Icons.self_improvement_rounded;
+      case 'water_drop': return Icons.water_drop_rounded;
+      case 'medkit': return Icons.medkit_rounded;
+      case 'sleep': return Icons.bedtime_rounded;
+      default: return Icons.check_circle_rounded;
+    }
+  }
 
   // ── Health Assessment Card ─────────────────────────────────────────────────
   Widget _buildAssessmentCard() {

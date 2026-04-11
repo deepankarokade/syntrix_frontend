@@ -132,6 +132,21 @@ $pregContext''';
             print('Diet: Error fetching pregnancy info: $e');
           }
         }
+      } else if (_userCondition == 'pcos' || _userCondition == 'pcod' || _userCondition == 'general') {
+        try {
+          final healthService = HealthDataService();
+          final pcosResult = await healthService.fetchAndPredictRisk();
+          if (pcosResult != null) {
+            extraContext = '''
+\nPCOS/PCOD RISK ASSESSMENT:
+- Risk Percentage: ${pcosResult.riskPercentage}%
+- Category: ${pcosResult.category}
+- Contributing Factors: ${pcosResult.topFeatures.map((f) => f.key).join(', ')}
+''';
+          }
+        } catch (e) {
+          print('Diet: Error fetching PCOS risk: $e');
+        }
       }
 
       final messages = [

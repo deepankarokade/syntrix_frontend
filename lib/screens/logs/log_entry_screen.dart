@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../home/home_screen.dart';
 import '../../services/user_session.dart';
 import '../../services/cycle_prediction_service.dart';
+import '../../services/health_insight_service.dart';
 
 class LogEntryScreen extends StatefulWidget {
   final DateTime? editDate;
@@ -279,6 +280,13 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
 
         // 2. Update Local Cache
         UserSession.update(newWeight: weight.toString());
+      }
+
+      // ── Regenerate AI Insights (Background) ──
+      if (_lifeStage?.toLowerCase() != 'pregnant') {
+        HealthInsightService.generateInsights(refresh: true).catchError((e) {
+          print("Background Insight Generation Error: $e");
+        });
       }
 
       if (mounted) {
