@@ -559,56 +559,75 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
           ),
         ),
         const SizedBox(height: 14),
-        GridView.count(
-          crossAxisCount: 3,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio:
-              0.9, // Adjusted for 3 columns
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _quickAction(
-              icon: Icons.auto_awesome,
-              label: 'AI\nInsights',
-              color: const Color(0xFF3A6EA8),
-              bgColor: const Color(0xFFE8F0F8),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PregnancyInsightsScreen(),
-                  ),
-                );
-              },
+            Expanded(
+              child: _quickAction(
+                icon: Icons.auto_awesome,
+                label: 'AI\nInsights',
+                color: const Color(0xFF3A6EA8),
+                bgColor: const Color(0xFFE8F0F8),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PregnancyInsightsScreen(),
+                    ),
+                  );
+                },
+              ),
             ),
-            _quickAction(
-              icon: Icons.chat_bubble_outline,
-              label: 'AI Chat',
-              color: const Color(0xFFB5616A),
-              bgColor: const Color(0xFFFFECEC),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChatbotScreen(),
-                  ),
-                );
-              },
+            const SizedBox(width: 8),
+            Expanded(
+              child: _quickAction(
+                icon: Icons.chat_bubble_outline,
+                label: 'AI Chat',
+                color: const Color(0xFFB5616A),
+                bgColor: const Color(0xFFFFECEC),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChatbotScreen(),
+                    ),
+                  );
+                },
+              ),
             ),
-            _quickAction(
-              icon: Icons.restaurant_menu,
-              label: 'Meal Plan',
-              color: const Color(0xFF2E7D6B),
-              bgColor: const Color(0xFFE0F4F0),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DietPlannerScreen(),
-                  ),
-                );
-              },
+            const SizedBox(width: 8),
+            Expanded(
+              child: _quickAction(
+                icon: Icons.restaurant_menu,
+                label: 'Meal Plan',
+                color: const Color(0xFF2E7D6B),
+                bgColor: const Color(0xFFE0F4F0),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DietPlannerScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _quickAction(
+                icon: Icons.medication,
+                label: 'Medicine\nReminder',
+                color: const Color(0xFFE67E22),
+                bgColor: const Color(0xFFFFF3E0),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MedicineManagementScreen(),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -628,7 +647,8 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 90,
+        width: 110,
+        height: 120,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
