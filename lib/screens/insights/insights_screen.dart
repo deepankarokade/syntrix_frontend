@@ -170,27 +170,36 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 16),
-                        _buildInsightAlert(),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _smallInsightCard(
-                                icon: Icons.trending_up,
-                                iconColor: const Color(0xFF3A6EA8),
-                                label: 'Weight trend increasing',
+                        // ── Dynamic Dynamic Key Insights ──────────────────
+                        if (_result != null) ...[
+                          _dynamicCycleAlert(_result!.rawFeatures['Cycle(R/I)'] == 1.0),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _smallInsightCard(
+                                  icon: Icons.trending_up,
+                                  iconColor: const Color(0xFFD68A3D),
+                                  label: _result!.rawFeatures['Weight gain(Y/N)'] == 1.0 
+                                      ? 'Weight Gain Input: Yes' 
+                                      : 'Weight Gain Input: No',
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _smallInsightCard(
-                                icon: Icons.psychology_outlined,
-                                iconColor: const Color(0xFF2E7D6B),
-                                label: 'Possible lifestyle impact',
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _smallInsightCard(
+                                  icon: Icons.psychology_outlined,
+                                  iconColor: (_result!.rawFeatures['Fast food (Y/N)'] == 1.0 || _result!.rawFeatures['Reg.Exercise(Y/N)'] == 0.0)
+                                      ? const Color(0xFFB5616A) 
+                                      : const Color(0xFF2E7D6B),
+                                  label: (_result!.rawFeatures['Fast food (Y/N)'] == 1.0 || _result!.rawFeatures['Reg.Exercise(Y/N)'] == 0.0)
+                                      ? 'Lifestyle Impact: Yes'
+                                      : 'Lifestyle Impact: No',
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
 
                         const SizedBox(height: 32),
 
@@ -251,12 +260,25 @@ class _InsightsScreenState extends State<InsightsScreen> {
                             padding: EdgeInsets.all(20.0),
                             child: CircularProgressIndicator(),
                           ))
-                        else if (_aiInsights != null && _aiInsights!['recommendations'] != null)
-                          ...( _aiInsights!['recommendations'] as List).map((rec) => _recommendationTile(
+                        else if (_aiInsights != null && _aiInsights!['recommendations'] != null) ...[
+                          _sectionHeader('Dietary Suggestions'),
+                          ...( _aiInsights!['recommendations'] as List)
+                              .where((r) => r['type'] == 'diet')
+                              .map((rec) => _recommendationTile(
+                            icon: _getIconData(rec['icon']),
+                            iconColor: const Color(0xFF2E7D6B),
+                            label: rec['label'],
+                          )),
+                          const SizedBox(height: 16),
+                          _sectionHeader('Lifestyle Recommendations'),
+                          ...( _aiInsights!['recommendations'] as List)
+                              .where((r) => r['type'] != 'diet') // lifestyle or medical
+                              .map((rec) => _recommendationTile(
                             icon: _getIconData(rec['icon']),
                             iconColor: const Color(0xFF3A6EA8),
                             label: rec['label'],
-                          ))
+                          )),
+                        ]
                         else
                           const Text('Record more logs to see personalized recommendations.'),
 
@@ -276,13 +298,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
                            const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()))
                         else if (_aiInsights != null && _aiInsights!['suggestedContent'] != null)
                           SizedBox(
-                            height: 220,
+                            height: 190,
                             child: ListView(
                               scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
                               children: (_aiInsights!['suggestedContent'] as List).map((item) => _suggestedContentCard(
-                                category: item['category'],
-                                title: item['title'],
-                                imageUrl: item['imageUrl'],
+                                category: item['category'] ?? 'Wellness',
+                                title: item['title'] ?? 'Health Tip',
+                                description: item['description'] ?? 'Detailed information will appear here once more logs are recorded.',
                               )).toList(),
                             ),
                           )
@@ -294,6 +317,21 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     ),
                   ),
                 ),
+    );
+  }
+
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF7A8FA6),
+          letterSpacing: 1.2,
+        ),
+      ),
     );
   }
 
@@ -388,22 +426,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  // ── Alert card based on risk level ────────────────────────────────────────
-  Widget _buildInsightAlert() {
-    final cat = _result?.category ?? RiskCategory.low;
-    final isHighRisk = cat == RiskCategory.high || cat == RiskCategory.moderate;
+  // ── Dynamic Cycle Alert ───────────────────────────────────────────
+  Widget _dynamicCycleAlert(bool isIrregular) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isIrregular ? const Color(0xFFFFF0F0) : const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(
+          color: isIrregular ? const Color(0xFFFFD0D0) : const Color(0xFFA5D6A7),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -411,18 +444,12 @@ class _InsightsScreenState extends State<InsightsScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isHighRisk
-                  ? const Color(0xFFFFF0F0)
-                  : const Color(0xFFE8F5E9),
+              color: isIrregular ? const Color(0xFFFEE2E2) : const Color(0xFFC8E6C9),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isHighRisk
-                  ? Icons.warning_amber_rounded
-                  : Icons.check_circle_outline_rounded,
-              color: isHighRisk
-                  ? const Color(0xFFB5616A)
-                  : const Color(0xFF2E7D6B),
+              isIrregular ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
+              color: isIrregular ? const Color(0xFFD32F2F) : const Color(0xFF2E7D6B),
               size: 24,
             ),
           ),
@@ -432,33 +459,35 @@ class _InsightsScreenState extends State<InsightsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isHighRisk
-                      ? 'Irregular cycle pattern detected'
-                      : 'Cycle pattern looks stable',
-                  style: const TextStyle(
+                  isIrregular ? 'Irregular Cycle Pattern Detected' : 'Regular Cycle Pattern Detected',
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A2B3C),
+                    color: isIrregular ? const Color(0xFFD32F2F) : const Color(0xFF1B5E20),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isHighRisk
-                      ? 'Multiple risk factors detected in your recent data.'
-                      : 'Your recent health logs show a healthy trend.',
-                  style: const TextStyle(
+                  isIrregular 
+                      ? 'Your log patterns indicate cycle variability.'
+                      : 'Your logs show a healthy, regular cycle rhythm.',
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF7A8FA6),
+                    color: isIrregular ? const Color(0xFF7A6A6A) : const Color(0xFF558B2F),
                     height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
+          if (!isIrregular)
+            const Icon(Icons.verified_user_rounded, color: Color(0xFF43A047), size: 24),
         ],
       ),
     );
   }
+
+  // ── Header builder ──────────────────────────────────────────────────────────
 
   // ── Top Features bar chart ─────────────────────────────────────────────────
   Widget _buildTopFeatures() {
@@ -632,12 +661,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
         children: [
           Icon(icon, color: iconColor, size: 22),
           const SizedBox(width: 14),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A2B3C),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A2B3C),
+              ),
             ),
           ),
         ],
@@ -649,69 +680,162 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Widget _suggestedContentCard({
     required String category,
     required String title,
-    required String imageUrl,
+    required String description,
   }) {
-    return Container(
-      width: 220,
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: Image.network(
-              imageUrl,
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 120,
-                color: const Color(0xFFE8EDF4),
-                child: const Icon(Icons.image, color: Colors.white, size: 30),
+    return GestureDetector(
+      onTap: () => _showInfoModal(category, title, description),
+      child: Container(
+        width: 260,
+        margin: const EdgeInsets.only(right: 20, bottom: 10),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+          border: Border.all(color: const Color(0xFFE8EDF4), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                category.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).primaryColor,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 16),
+            Text(
+              title,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1A2B3C),
+                height: 1.3,
+              ),
+            ),
+            const Spacer(),
+            Row(
               children: [
                 Text(
-                  category,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF3A6EA8),
-                    letterSpacing: 0.5,
+                  'Read More',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).primaryColor,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A2B3C),
-                    height: 1.3,
-                  ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 10,
+                  color: Theme.of(context).primaryColor,
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showInfoModal(String category, String title, String description) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EDF4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              category.toUpperCase(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Theme.of(context).primaryColor,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1A2B3C),
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Divider(color: Color(0xFFE8EDF4)),
+            const SizedBox(height: 24),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF4A5A6A),
+                    height: 1.7,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

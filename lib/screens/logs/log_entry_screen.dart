@@ -173,7 +173,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   List<String> _getSymptomsForCondition() {
     switch (_lifeStage?.toLowerCase()) {
       case 'pcos':
-        return ['Acne', 'Fatigue', 'Bloating', 'Cramps', 'Mood Swings', 'Headache', 'Facial hair growth', 'Hair Loss', 'Skin darkening'];
+      case 'pcod':
+        return ['Acne', 'Fatigue', 'Bloating', 'Color Changes', 'Cramps', 'Mood Swings', 'Headache', 'Facial hair growth', 'Hair Loss', 'Skin darkening'];
       case 'pregnant':
         return ['Nausea', 'Back Pain', 'Fatigue', 'Headache', 'Heartburn', 'Insomnia', 'Mood Swings', 'Leg Cramps', 'Shortness of Breath', 'Dizziness', 'Constipation', 'Facial hair growth', 'Skin darkening'];
       case 'menopause':

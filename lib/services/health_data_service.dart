@@ -240,12 +240,12 @@ class HealthDataService {
         'Hb(g/dl)':             hb,
         'Waist:Hip Ratio':      whr,
         // Advanced hormonal markers (only populated if report exists)
-        'LH(mIU/mL)':  ?lh,
-        'FSH(mIU/mL)': ?fsh,
+        'LH(mIU/mL)':  lh ?? 0.0,
+        'FSH(mIU/mL)': fsh ?? 0.0,
         if (hasHormonalData)  'LH/FSH Ratio': lhfshRatio,
-        'AMH(ng/mL)':  ?amh,
-        'PRL(ng/mL)':  ?prl,
-        'PRG(ng/mL)':  ?prg,
+        'AMH(ng/mL)':  amh ?? 0.0,
+        'PRL(ng/mL)':  prl ?? 0.0,
+        'PRG(ng/mL)':  prg ?? 0.0,
       };
 
       print('HealthDataService: hasHormonalData=$hasHormonalData, '

@@ -78,6 +78,7 @@ class PcosResult {
   final RiskCategory category;
   final String modelUsed;
   final List<MapEntry<String, double>> topFeatures;
+  final Map<String, double> rawFeatures;
 
   const PcosResult({
     required this.riskScore,
@@ -85,6 +86,7 @@ class PcosResult {
     required this.category,
     required this.modelUsed,
     required this.topFeatures,
+    required this.rawFeatures,
   });
 
   String get categoryLabel {
@@ -220,6 +222,7 @@ class PcosPredictor {
       category:       _categorize(prob),
       modelUsed:      modelName,
       topFeatures:    topFeatures,
+      rawFeatures:    input,
     );
   }
 

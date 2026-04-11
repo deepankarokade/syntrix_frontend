@@ -31,8 +31,6 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
   bool _isLoading = true;
   Map<String, dynamic> _lastLog = {};
   bool _showDoctorAlert = false;
-  String? _aiInsight;
-  bool _isLoadingAi = false;
 
   @override
   void initState() {
@@ -40,23 +38,6 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
     _fetchLastLog();
   }
 
-  Future<void> _generateInsight() async {
-    setState(() => _isLoadingAi = true);
-    try {
-      String contextStr = await AiService.getGroundingContext();
-      String prompt = "You are a strict, medical menopause clinical expert. Using the following user timeline, write a short, 2-3 sentence clinical insight about their current condition, identifying their most severe menopausal symptom and assigning ONE concrete action to improve it. Do NOT hallucinate fake dates. Be direct.\n\n$contextStr";
-      
-      String? result = await AiService.sendMessage(messages: [{"role": "user", "content": prompt}]);
-      
-      if (mounted && result != null) {
-         setState(() => _aiInsight = result.replaceAll('*', ''));
-      }
-    } catch(e) {
-      if (mounted) setState(() => _aiInsight = "Failed to load insight.");
-    } finally {
-      if (mounted) setState(() => _isLoadingAi = false);
-    }
-  }
 
   Future<void> _fetchLastLog() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -274,133 +255,9 @@ class _MenopauseDashboardState extends State<MenopauseDashboard> {
 
         const SizedBox(height: 24),
 
-        // ── AI Automated Insights ─────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'SMART AUTOMATED INSIGHT',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF7A8FA6),
-                letterSpacing: 1.2,
-              ),
-            ),
-            TextButton.icon(
-              onPressed: _isLoadingAi ? null : _generateInsight,
-              icon: _isLoadingAi 
-                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF3A6EA8)),
-              label: Text(_isLoadingAi ? 'Loading...' : 'Generate AI Insight', style: const TextStyle(fontSize: 12, color: Color(0xFF3A6EA8))),
-            )
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8F0F8),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFF3A6EA8).withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.auto_awesome, color: Color(0xFF3A6EA8), size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _aiInsight == null 
-                  ? const Text(
-                      'Push the button above to securely analyze your log history and calculate personalized clinical insights.',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF7A8FA6), fontStyle: FontStyle.italic),
-                    )
-                  : Text(
-                      _aiInsight!,
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF1A2B3C), height: 1.4, fontWeight: FontWeight.w500),
-                    ),
-              ),
-            ],
-          ),
-        ),
-
         const SizedBox(height: 24),
 
-        // ── Nutrition Suggestions Header ─────────────────────
-        const Text(
-          'DIET SUGGESTIONS',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF7A8FA6),
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        _dietSuggestionCard(
-          title: 'Morning Boost',
-          desc: 'Warm water + mixed nuts (Almonds/Walnuts)',
-          icon: Icons.wb_twilight,
-        ),
-        _dietSuggestionCard(
-          title: 'Main Meal Focus',
-          desc: 'Green veggies + dal + roti (High Calcium & Protein)',
-          icon: Icons.restaurant,
-        ),
-        _dietSuggestionCard(
-          title: 'Hydration Goal',
-          desc: 'Drink at least 2.5L water. Avoid caffeine after 5 PM.',
-          icon: Icons.water_drop,
-        ),
-
         const SizedBox(height: 24),
-
-        // ── Lifestyle Tips ──────────────────────────────────
-        const Text(
-          'LIFESTYLE RECOMMENDATIONS',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF7A8FA6),
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _tipCard(
-                'Yoga for Stress',
-                'Helps manage anxiety and mood swings.',
-                Icons.self_improvement,
-                const Color(0xFF2E7D6B),
-              ),
-              _tipCard(
-                'Walking 30 min',
-                'Essential for bone health and weight.',
-                Icons.directions_walk,
-                const Color(0xFFD68A3D),
-              ),
-              _tipCard(
-                'Cool Room',
-                'Maintains sleep if having night sweats.',
-                Icons.ac_unit,
-                const Color(0xFF3A6EA8),
-              ),
-            ],
-          ),
-        ),
 
         const SizedBox(height: 24),
 

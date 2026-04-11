@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'ai_service.dart';
 import 'health_data_service.dart';
+import 'pcos_predictor.dart';
 
 class HealthInsightService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -32,33 +33,35 @@ You are an expert Women's Health Analyst. Analyze the following health data and 
 ## HEALTH DATA CONTEXT:
 $groundingContext
 
-## PCOS RISK ASSESSMENT:
+## PCOS/HEALTH RISK ASSESSMENT (Top 5 Factors):
 - Risk Score: ${pcosResult?.riskPercentage ?? 0}%
 - Category: ${pcosResult?.category?.toString().split('.').last ?? 'Unknown'}
-- Top Factors: ${pcosResult?.topFeatures.map((f) => "${f.key}: ${f.value.toStringAsFixed(2)}").join(', ') ?? 'None'}
+- Primary Contributors: ${pcosResult?.topFeatures.map((f) => "${f.key} (Intensity: ${f.value.toStringAsFixed(2)})").join(', ') ?? 'None'}
 
 ## TASK:
 Respond ONLY with a JSON object in the following format (NO MARKDOWN outside JSON):
 {
-  "summary": "A 2-3 sentence overview of her health status today.",
+  "summary": "A 2-3 sentence overview of her health status today, specifically mentioning how the top factors are affecting her.",
   "recommendations": [
-    {"label": "Recommendation text (short)", "icon": "flutter_icon_name", "type": "activity|diet|medical"},
-    ... (max 3)
+    {"label": "Detailed Diet Tip", "icon": "restaurant", "type": "diet"},
+    {"label": "Core Lifestyle Change", "icon": "directions_run", "type": "lifestyle"},
+    {"label": "Clinical/Medical advice", "icon": "medkit", "type": "medical"}
   ],
   "suggestedContent": [
     {
       "category": "EXERCISE|NUTRITION|WELLNESS",
-      "title": "Interesting title",
+      "title": "Topic related to her top risk factor",
+      "description": "2-3 paragraphs of detailed, actionable advice and medical context.",
       "imageUrl": "Unsplash URL related to topic"
     },
     ... (max 2)
   ],
-  "lifestyleAlert": "Short alert title",
-  "lifestyleMessage": "Actionable secondary message"
+  "lifestyleAlert": "Short alert title based on highest factor",
+  "lifestyleMessage": "Specific warning or encouragement"
 }
 
-Icons to use for recommendations: directions_run, restaurant, self_improvement, water_drop, medkit, sleep.
-Ensure the suggestions are tailored. If high PCOS risk, suggest low glycemic nutrition. If stressed, suggest yoga.
+Icons: directions_run, restaurant, self_improvement, water_drop, medkit, sleep.
+Ensure recommendations explicitly address the 'Top Factors' listed above for PCOS/PCOD or general health maintenance.
 """;
 
     try {
@@ -80,8 +83,12 @@ Ensure the suggestions are tailored. If high PCOS risk, suggest low glycemic nut
 
       final data = jsonDecode(cleanJson) as Map<String, dynamic>;
       
-      // Save to Firestore
+      // 3. Save Insight and raw Factors to Firestore
       await _saveInsight(uid, dateStr, data);
+      
+      if (pcosResult != null) {
+        await _saveFactors(uid, dateStr, pcosResult);
+      }
       
       return data;
     } catch (e) {
@@ -98,6 +105,26 @@ Ensure the suggestions are tailored. If high PCOS risk, suggest low glycemic nut
         .doc(dateStr)
         .set({
       ...data,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Save raw PCOS/Health factors for analysis history
+  static Future<void> _saveFactors(String uid, String dateStr, PcosResult result) async {
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('health_factors')
+        .doc(dateStr)
+        .set({
+      'riskScore': result.riskScore,
+      'riskPercentage': result.riskPercentage,
+      'category': result.category.toString().split('.').last,
+      'modelUsed': result.modelUsed,
+      'topFactors': result.topFeatures.map((e) => {
+        'factor': e.key,
+        'intensity': e.value,
+      }).toList(),
       'timestamp': FieldValue.serverTimestamp(),
     });
   }
