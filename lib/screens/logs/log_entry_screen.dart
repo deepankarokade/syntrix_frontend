@@ -297,14 +297,48 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
             backgroundColor: Colors.teal,
           ),
         );
-        // Redirect back up to the Home Screen
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
+        Navigator.pop(context);
       }
     } catch (e) {
       print("Error saving log entry: $e");
+    }
+  }
+
+  Future<void> _deleteLog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Log?'),
+        content: const Text('Are you sure you want to delete this log entry?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB5616A)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && user != null) {
+      try {
+        final dateStr = DateFormat('yyyy-MM-dd').format(_selectedLogDate);
+        final docId = "${dateStr}_$_selectedTime";
+        await FirebaseFirestore.instance
+            .collection('logs')
+            .doc(user!.uid)
+            .collection('daily_entries')
+            .doc(docId)
+            .delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Log deleted')));
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting: $e')));
+      }
     }
   }
 
@@ -683,6 +717,26 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              if (widget.existingData != null)
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: OutlinedButton(
+                    onPressed: _deleteLog,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFB5616A),
+                      side: const BorderSide(color: Color(0xFFB5616A)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: const Text(
+                      'Delete Log Entry',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
               const SizedBox(height: 60),
             ],
           ),

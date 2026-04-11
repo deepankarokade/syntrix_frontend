@@ -60,8 +60,9 @@ Respond ONLY with a JSON object in the following format (NO MARKDOWN outside JSO
   "lifestyleMessage": "Specific warning or encouragement"
 }
 
-Icons: directions_run, restaurant, self_improvement, water_drop, medkit, sleep.
 Ensure recommendations explicitly address the 'Top Factors' listed above for PCOS/PCOD or general health maintenance.
+Icons: directions_run, restaurant, self_improvement, water_drop, medkit, sleep.
+If the 'LATEST CLINICAL REPORT' in Health Data Context contains hormonal markers (LH, FSH, AMH, etc.), YOU MUST explicitly analyze them in the summary and recommendations, even if they aren't the top statistical factors from the model.
 """;
 
     try {

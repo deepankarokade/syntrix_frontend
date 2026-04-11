@@ -621,17 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
                 const SizedBox(height: 32),
-                const Text(
-                  'Health Trends',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1A2B3C),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const HealthMetricsChart(),
+                const SizedBox(height: 30),
 
                 const SizedBox(height: 30),
 

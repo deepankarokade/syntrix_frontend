@@ -231,18 +231,6 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         _buildTrendSummary(),
                         const SizedBox(height: 32),
 
-                        // ── Historical Health Graph ──────────────────────
-                        const Text(
-                          'Historical Health Metrics',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A2B3C),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const HealthMetricsChart(),
-
                         const SizedBox(height: 32),
 
                         // ── Recommendations ──────────────────────────────

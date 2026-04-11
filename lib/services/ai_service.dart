@@ -58,7 +58,7 @@ Generate a highly personalized, medically accurate diet plan IMMEDIATELY based o
 STRUCTURE YOUR RESPONSE INTO THREE DISTINCT SECTIONS:
 1. ## FULL MEAL PLAN
    Provide a complete daily meal schedule (Breakfast, Mid-morning, Lunch, Snack, Dinner).
-   Ensure this is specific to today's metabolic needs based on their logs.
+   Ensure this is specific to today's metabolic needs based on their logs AND clinical data from their latest medical report (e.g., Blood Sugar, Hormonal levels).
 
 2. ## NUTRIENTS FOCUS
    List essential vitamins, minerals, and macronutrients required for their current condition (e.g., Vitamin D, Inositol for PCOS, Iron for Pregnancy).
@@ -307,6 +307,32 @@ OUTPUT FORMAT:
           }
           if (data['spotting'] == true) context.writeln("  - Spotting: Yes");
         }
+      }
+
+      // ── LATEST CLINICAL REPORT ───────────────────────────────────
+      final reportsCol = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('reports');
+      
+      final latestReportList = await reportsCol
+          .orderBy('uploadedAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (latestReportList.docs.isNotEmpty) {
+        final rData = latestReportList.docs.first.data();
+        final metrics = (rData['metrics'] as Map<String, dynamic>?) ?? {};
+        final date = rData['date'] ?? 'Recent';
+        
+        context.writeln("\nLATEST CLINICAL REPORT ($date):");
+        if (metrics.isNotEmpty) {
+          metrics.forEach((key, value) {
+            context.writeln("  - ${key.toUpperCase()}: $value");
+          });
+        }
+      } else {
+        context.writeln("\nLATEST CLINICAL REPORT: No medical reports found.");
       }
 
       // ── Pregnancy Lifestyle Logs (if pregnant) ───────────────────────

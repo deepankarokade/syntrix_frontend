@@ -209,6 +209,18 @@ class PcosPredictor {
             if (zScore * direction < 0) importance = -(zScore * direction);
           }
         }
+        
+        // ── BOOSTER for Advanced Markers ──
+        // If we are in the advanced model, give a small boost to hormonal markers 
+        // to ensure they appear in the top features list even if mathematically 
+        // secondary to high-variance features like BMI.
+        if (useAdvanced && hormonalFeatures.contains(feature) && importance > 0) {
+          importance += 1.5; // Strategic boost
+        }
+        else if (useAdvanced && feature == 'LH/FSH Ratio' && importance > 0) {
+          importance += 1.5;
+        }
+
         return MapEntry(feature, importance);
       },
     )..sort((a, b) => b.value.compareTo(a.value));

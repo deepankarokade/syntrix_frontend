@@ -703,8 +703,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ],
                 ),
               ),
-              // Edit button
-              if (docId != null)
+              // Edit & Delete buttons
+              if (docId != null) ...[
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -746,6 +746,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ),
                   ),
                 ),
+              ],
             ],
           ),
 
@@ -1101,9 +1102,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid == null) return;
         await FirebaseFirestore.instance
-            .collection('reports')
+            .collection('users')
             .doc(uid)
-            .collection('user_reports')
+            .collection('reports')
             .doc(docId)
             .delete();
         if (mounted) {

@@ -495,11 +495,7 @@ class _ReportsScreenState extends State<ReportsScreen>
             backgroundColor: Colors.teal,
           ),
         );
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
