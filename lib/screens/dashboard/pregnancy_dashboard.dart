@@ -6,6 +6,7 @@ import '../onboarding/condition_selection_screen.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
 import '../step_tracker/step_tracker_screen.dart';
+import '../medicine/medicine_management_screen.dart';
 import '../logs/pregnancy_log_screen.dart';
 import '../../services/step_tracker_service.dart';
 import '../../services/blood_sugar_service.dart';
@@ -559,13 +560,28 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
         ),
         const SizedBox(height: 14),
         GridView.count(
-          crossAxisCount: 2,
+          crossAxisCount: 3,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 2.2,
+          childAspectRatio:
+              0.9, // Adjusted for 3 columns
           children: [
+            _quickAction(
+              icon: Icons.auto_awesome,
+              label: 'AI\nInsights',
+              color: const Color(0xFF3A6EA8),
+              bgColor: const Color(0xFFE8F0F8),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PregnancyInsightsScreen(),
+                  ),
+                );
+              },
+            ),
             _quickAction(
               icon: Icons.chat_bubble_outline,
               label: 'AI Chat',
@@ -612,6 +628,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        height: 90,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [

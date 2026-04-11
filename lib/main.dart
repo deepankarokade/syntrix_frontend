@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
@@ -6,6 +7,7 @@ import 'screens/onboarding/welcome_screen.dart';
 import 'widgets/auth_wrapper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/serene_ui.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +16,11 @@ void main() async {
   await dotenv.load(fileName: ".env");
   
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize notifications only on mobile platforms (not web)
+  if (!kIsWeb) {
+    await NotificationService().init();
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final hasSeenWelcome = prefs.getBool('hasSeenWelcome') ?? false;
