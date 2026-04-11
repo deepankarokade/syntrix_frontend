@@ -255,7 +255,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         break;
       case 3:
-        currentBody = const ProfileScreen();
+        currentBody = ProfileScreen(
+          onBack: () => setState(() => _currentTab = 0),
+        );
         break;
       default:
         if (_lifeStage == 'pcos') {
@@ -516,64 +518,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 16),
 
-                // ── Insight card ──────────────────────────────────────
-                if (_isIrregular) ...[
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF0F0),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFFFFD0D0),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFE5E5),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.warning_amber_rounded,
-                            color: Color(0xFFB5616A),
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Insight Detected',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1A2B3C),
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Cycle irregularity detected. This can be common with PCOS; consider tracking your cortisol levels this week.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF7A8FA6),
-                                  height: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
 
                 // ── Quick Actions ─────────────────────────────────────
                 const Text(
@@ -655,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
               ],
             ),
     );

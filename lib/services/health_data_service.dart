@@ -17,10 +17,12 @@ class HealthDataService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final PcosPredictor _predictor = PcosPredictor();
 
-  // ── Default fallback values when blood report data is unavailable ──────────
-  static const double _defaultRbs = 85.0;   // mid-normal range (mg/dl)
-  static const double _defaultTsh = 2.0;    // mid-normal range (mIU/L)
-  static const double _defaultHb  = 13.5;   // mid-normal for females (g/dl)
+  // To prevent unlogged metrics from artificially spiking in feature importance,
+  // we default them to the exact mathematical mean of the training dataset.
+  // This ensures their scaled contribution is exactly 0.0 unless actively logged.
+  static const double _defaultRbs = 99.46;
+  static const double _defaultTsh = 3.07;
+  static const double _defaultHb  = 11.17;
   static const double _defaultWhr = 0.80;   // healthy WHR
 
   // ── Categorical encoding helpers ──────────────────────────────────────────
@@ -52,12 +54,12 @@ class HealthDataService {
     return 0.0;
   }
 
-  /// Encodes cycle regularity: Regular → 2.0, Irregular → 4.0 (matches CSV)
+  /// Encodes cycle regularity: Regular → 0.0, Irregular → 1.0 (LabelEncoded bounds)
   static double _encodeCycle(dynamic value) {
-    if (value == null) return 2.0; // default to regular
+    if (value == null) return 0.0; // default to regular
     final s = value.toString().trim().toLowerCase();
-    if (s == 'regular' || s == 'r' || s == '2') return 2.0;
-    return 4.0; // irregular
+    if (s == 'regular' || s == 'r' || s == '2' || s == '0') return 0.0;
+    return 1.0; // irregular
   }
 
   /// Safely parse any dynamic value to double, returns null if unparseable.
@@ -160,10 +162,13 @@ class HealthDataService {
 
       // ── Step 2.5: Fetch Mathematical Cycle Data ────────────────────────
       final cycleData = await CyclePredictionService.getCycleData(uid);
-      final cycleType = cycleData.isIrregular ? 4.0 : 2.0;
+      // NOTE: The Python model's StandardScaler was fitted on LabelEncoded values (0 = Regular, 1 = Irregular), 
+      // NOT the raw '2' and '4' integers from the original CSV. 
+      final cycleType = cycleData.isIrregular ? 1.0 : 0.0;
 
-      // Ensure the model gets the true overall Cycle Length (e.g. 28 days), not just the 5 days of bleeding
-      final cycleLengthDays = cycleData.averageCycleLength.toDouble();
+      // Note: The ML model's 'Cycle length(days)' feature is actually trained on *Period Length* (days of bleeding).
+      // The training dataset mean is ~4.95. Supplying an average cycle (e.g. 28) causes massive artificial outlier scaling.
+      final cycleLengthDays = cycleData.averagePeriodLength.toDouble();
 
       // Waist-to-hip ratio from most recent logs (override default if present)
       double whr = _defaultWhr;
