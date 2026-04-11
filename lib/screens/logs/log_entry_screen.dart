@@ -304,19 +304,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Add Log',
-          style: TextStyle(
-            color: Color(0xFF2E4A6B),
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: false,
+        title: const Text('Add Log'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -325,12 +315,10 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
           children: [
             const SizedBox(height: 10),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Track Your Health',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A2B3C),
                   letterSpacing: -0.5,
                 ),
               ),
@@ -340,18 +328,18 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F0F8),
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.calendar_month_outlined, color: Color(0xFF3A6EA8), size: 18),
+                      Icon(Icons.calendar_month_outlined, color: Theme.of(context).primaryColor, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           "Date: ${DateFormat('MMMM dd, yyyy').format(_selectedLogDate)} (Tap to change)",
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF3A6EA8)),
+                          style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).primaryColor),
                         ),
                       ),
                     ],
@@ -775,7 +763,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                 child: ElevatedButton(
                   onPressed: _saveLog,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E4A6B),
+                    backgroundColor: Theme.of(context).primaryColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -1024,10 +1012,10 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   Widget _sectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w800,
-        color: Color(0xFF1A2B3C),
+        color: Theme.of(context).primaryColor,
         letterSpacing: 1.2,
       ),
     );
@@ -1073,7 +1061,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F6FA),
+        color: Colors.grey[100],
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -1101,6 +1089,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                 child: Text(
                   opt,
                   textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                   style: TextStyle(
                     color: isSelected
                         ? const Color(0xFF1A2B3C)
@@ -1149,8 +1139,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
               label,
               style: TextStyle(
                 color: isSelected
-                    ? const Color(0xFF2E4A6B)
-                    : const Color(0xFF5A7EA0),
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).textTheme.bodyMedium?.color,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 fontSize: 13,
               ),

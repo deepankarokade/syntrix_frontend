@@ -217,33 +217,33 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
   @override
   Widget build(BuildContext context) {
     if (_isLoadingInfo) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF4F6FA),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Color(0xFF3A6EA8)),
-              SizedBox(height: 16),
-              Text(
-                'Loading pregnancy data...',
-                style: TextStyle(color: Color(0xFF7A8FA6)),
-              ),
-            ],
-          ),
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Theme.of(context).primaryColor),
+            const SizedBox(height: 16),
+            Text(
+              'Loading pregnancy data...',
+              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+            ),
+          ],
         ),
-      );
+      ),
+    );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
             expandedHeight: 280,
             floating: false,
             pinned: true,
-            backgroundColor: const Color(0xFF2E4A6B),
+            backgroundColor: Theme.of(context).primaryColor,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
@@ -260,19 +260,19 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(14),
-                ),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(16),
+            ),
                 child: TabBar(
                   controller: _tabController,
                   indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(11),
-                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    color: Theme.of(context).primaryColor,
                   ),
                   dividerColor: Colors.transparent,
-                  labelColor: const Color(0xFF2E4A6B),
-                  unselectedLabelColor: Colors.white70,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Theme.of(context).textTheme.bodyMedium?.color,
                   labelStyle: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -298,11 +298,11 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
     double progress = _currentWeek / 40.0;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF3A6EA8), Color(0xFF2E4A6B)],
+          colors: [Theme.of(context).colorScheme.secondary, Theme.of(context).primaryColor],
         ),
       ),
       child: SafeArea(
@@ -437,12 +437,12 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
           const SizedBox(height: 20),
 
           // Lifestyle Summary
-          const Text(
+          Text(
             'LIFESTYLE SUMMARY (14 DAYS)',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF7A8FA6),
+              color: Theme.of(context).textTheme.bodySmall?.color,
               letterSpacing: 1.5,
             ),
           ),
@@ -467,17 +467,20 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF4AC2CD), Color(0xFF2E7D6B)],
+          colors: [
+            Theme.of(context).colorScheme.secondary,
+            Theme.of(context).primaryColor,
+          ],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4AC2CD).withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -588,16 +591,16 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
     score = score.clamp(0, 100);
 
     String rating = 'EXCELLENT';
-    Color ratingColor = const Color(0xFF2E7D6B);
+    Color ratingColor = Theme.of(context).primaryColor;
     if (score < 40) {
       rating = 'CONCERNING';
-      ratingColor = const Color(0xFFB5616A);
+      ratingColor = Theme.of(context).colorScheme.error;
     } else if (score < 60) {
       rating = 'NEEDS WORK';
-      ratingColor = Colors.orange;
+      ratingColor = Colors.orange; // Keeping orange as a semantic warning unless directed otherwise, but using Theme error for Concerning
     } else if (score < 80) {
       rating = 'GOOD';
-      ratingColor = const Color(0xFF3A6EA8);
+      ratingColor = Theme.of(context).colorScheme.secondary;
     }
 
     if (_totalLogsCount == 0) {
@@ -605,20 +608,20 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.amber.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Theme.of(context).primaryColor.withValues(alpha: 0.2)),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.info_outline, color: Colors.amber, size: 24),
-            SizedBox(width: 12),
+            Icon(Icons.info_outline, color: Theme.of(context).primaryColor, size: 24),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Start logging your daily lifestyle to see your health score and get personalized AI insights!',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.orange,
+                  color: Theme.of(context).primaryColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -636,9 +639,9 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -672,12 +675,12 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                         color: ratingColor,
                       ),
                     ),
-                    const Text(
+                    Text(
                       'SCORE',
                       style: TextStyle(
                         fontSize: 8,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF7A8FA6),
+                        color: Theme.of(context).textTheme.bodySmall?.color, // Will replace this in a moment
                       ),
                     ),
                   ],
@@ -710,20 +713,20 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Lifestyle Health Score',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A2B3C),
+                    color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Based on $_totalLogsCount lifestyle logs over 14 days',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF7A8FA6),
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -748,47 +751,47 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
           'Meals Skipped',
           '${_lifestyleSummary['skippedMeals'] ?? 0}',
           (_lifestyleSummary['skippedMeals'] ?? 0) > 3
-              ? const Color(0xFFB5616A)
-              : const Color(0xFF2E7D6B),
+              ? Theme.of(context).colorScheme.error
+              : Theme.of(context).primaryColor,
         ),
         _metricCard(
           '🍔',
           'Junk Food Days',
           '${_lifestyleSummary['junkFood'] ?? 0}',
           (_lifestyleSummary['junkFood'] ?? 0) > 2
-              ? const Color(0xFFB5616A)
-              : const Color(0xFF2E7D6B),
+              ? Theme.of(context).colorScheme.error
+              : Theme.of(context).primaryColor,
         ),
         _metricCard(
           '💧',
           'Low Water Days',
           '${_lifestyleSummary['lowWater'] ?? 0}',
           (_lifestyleSummary['lowWater'] ?? 0) > 3
-              ? const Color(0xFFB5616A)
-              : const Color(0xFF2E7D6B),
+              ? Theme.of(context).colorScheme.error
+              : Theme.of(context).primaryColor,
         ),
         _metricCard(
           '💊',
           'Missed Vitamins',
           '${_lifestyleSummary['missedVitamins'] ?? 0}',
           (_lifestyleSummary['missedVitamins'] ?? 0) > 3
-              ? const Color(0xFFB5616A)
-              : const Color(0xFF2E7D6B),
+              ? Theme.of(context).colorScheme.error
+              : Theme.of(context).primaryColor,
         ),
         _metricCard(
           '😴',
           'Poor Sleep Days',
           '${_lifestyleSummary['poorSleep'] ?? 0}',
           (_lifestyleSummary['poorSleep'] ?? 0) > 3
-              ? const Color(0xFFB5616A)
-              : const Color(0xFF2E7D6B),
+              ? Theme.of(context).colorScheme.error
+              : Theme.of(context).primaryColor,
         ),
         _metricCard(
           '🧘',
           'Exercise Days',
           '${_lifestyleSummary['exerciseDays'] ?? 0}',
           (_lifestyleSummary['exerciseDays'] ?? 0) >= 3
-              ? const Color(0xFF2E7D6B)
+              ? Theme.of(context).primaryColor
               : Colors.orange,
         ),
       ],
@@ -808,9 +811,9 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -834,10 +837,10 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
           ),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF7A8FA6),
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
         ],
@@ -857,9 +860,9 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -882,7 +885,7 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF4F6FA),
+                  color: Theme.of(context).primaryColor,
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Center(
@@ -899,18 +902,18 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                   children: [
                     Text(
                       'Baby is the size of a $babySize',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A2B3C),
+                        color: Theme.of(context).textTheme.titleLarge?.color,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       development,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF7A8FA6),
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                         height: 1.4,
                       ),
                     ),
@@ -930,12 +933,12 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'QUICK TIPS FOR THIS WEEK',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF7A8FA6),
+            color: Theme.of(context).textTheme.bodySmall?.color,
             letterSpacing: 1.5,
           ),
         ),
@@ -949,9 +952,9 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -965,18 +968,18 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                     children: [
                       Text(
                         tip['title']!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A2B3C),
+                          color: Theme.of(context).textTheme.titleLarge?.color,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         tip['desc']!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF7A8FA6),
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                       ),
                     ],
@@ -1001,10 +1004,13 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3A6EA8), Color(0xFF2E4A6B)],
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.secondary,
+                  Theme.of(context).primaryColor
+                ],
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
               children: [
@@ -1035,7 +1041,7 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                     onPressed: _isLoadingAi ? null : _fetchAiInsights,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF3A6EA8),
+                      foregroundColor: Theme.of(context).primaryColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -1047,14 +1053,14 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Color(0xFF3A6EA8),
+                              color: Colors.white,
                             ),
                           )
                         : Text(
                             _aiInsight != null
                                 ? '🔄 Regenerate Analysis'
                                 : '✨ Generate AI Analysis',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
                             ),
@@ -1079,39 +1085,39 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: MarkdownBody(
                 data: _aiInsight!,
                 styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(
+                  p: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF1A2B3C),
+                    color: Theme.of(context).textTheme.titleLarge?.color,
                     height: 1.6,
                   ),
-                  h1: const TextStyle(
+                  h1: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2E4A6B),
+                    color: Theme.of(context).primaryColor,
                   ),
-                  h2: const TextStyle(
+                  h2: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF3A6EA8),
+                    color: Theme.of(context).primaryColor,
                   ),
-                  h3: const TextStyle(
+                  h3: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A2B3C),
+                    color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
-                  listBullet: const TextStyle(color: Color(0xFF3A6EA8)),
-                  strong: const TextStyle(
+                  listBullet: TextStyle(color: Theme.of(context).primaryColor),
+                  strong: TextStyle(
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFFB5616A),
+                    color: Theme.of(context).colorScheme.error,
                   ),
                 ),
               ),
@@ -1125,7 +1131,7 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.lightbulb_outline, color: Colors.orange),
                   SizedBox(width: 12),

@@ -247,12 +247,10 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF2E4A6B)),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).primaryColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
@@ -282,19 +280,18 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4F6FA),
+              color: Colors.grey[200],
               borderRadius: BorderRadius.circular(16),
             ),
             child: TabBar(
               controller: _tabController,
+              isScrollable: false,
               indicator: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3A6EA8), Color(0xFF2E4A6B)],
-                ),
+                color: Theme.of(context).primaryColor,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF3A6EA8).withValues(alpha: 0.3),
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.25),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -317,14 +314,14 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFF3A6EA8)),
-                  SizedBox(height: 16),
+                  const CircularProgressIndicator(color: Color(0xFF3A6EA8)),
+                  const SizedBox(height: 16),
                   Text('Loading your logs...',
-                      style: TextStyle(color: Color(0xFF7A8FA6))),
+                      style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
                 ],
               ),
             )
@@ -344,7 +341,13 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(text),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
           if (saved) ...[
             const SizedBox(width: 4),
             const Icon(Icons.check_circle, size: 14),
@@ -391,7 +394,7 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: _slotSaved[slot] == true
                     ? const Color(0xFF2E7D6B)
-                    : const Color(0xFF3A6EA8),
+                    : Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -451,13 +454,10 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: answers.containsKey(key)
-            ? Border.all(color: const Color(0xFF3A6EA8).withValues(alpha: 0.3), width: 1.5)
-            : null,
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -474,10 +474,10 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
               Expanded(
                 child: Text(
                   question,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A2B3C),
+                    color: Theme.of(context).textTheme.displayLarge?.color,
                   ),
                 ),
               ),

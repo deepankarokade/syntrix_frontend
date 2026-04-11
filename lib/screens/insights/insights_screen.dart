@@ -66,38 +66,27 @@ class _InsightsScreenState extends State<InsightsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Insights',
-          style: TextStyle(
-            color: Color(0xFF2E4A6B),
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: false,
+        title: const Text('Insights'),
         actions: [
-          // Refresh button
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF2E4A6B)),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadPrediction,
             tooltip: 'Refresh assessment',
           ),
         ],
       ),
       body: _loading
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFF3A6EA8)),
-                  SizedBox(height: 16),
+                  CircularProgressIndicator(color: Theme.of(context).primaryColor),
+                  const SizedBox(height: 16),
                   Text(
                     'Analysing your health data...',
-                    style: TextStyle(color: Color(0xFF7A8FA6), fontSize: 14),
+                    style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 14),
                   ),
                 ],
               ),
@@ -135,13 +124,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         const SizedBox(height: 32),
 
                         // ── Key Insights ─────────────────────────────────
-                        const Text(
+                        Text(
                           'Key Insights',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A2B3C),
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 16),
                         _buildInsightAlert(),
@@ -278,10 +263,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFDDE8F5).withOpacity(0.8),
-            const Color(0xFFE8EDF4).withOpacity(0.6),
-          ],
+          colors: [Theme.of(context).colorScheme.secondary, Theme.of(context).primaryColor],
         ),
         border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
         boxShadow: [
@@ -299,7 +281,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF2E4A6B).withOpacity(0.5),
+              color: Colors.white70,
               letterSpacing: 2,
             ),
           ),
@@ -309,7 +291,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: color,
+              color: Colors.white,
               letterSpacing: -0.5,
             ),
           ),

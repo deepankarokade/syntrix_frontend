@@ -99,15 +99,14 @@ Logs: $contextStr""";
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Menopause Insights', style: TextStyle(color: Color(0xFF2E4A6B), fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
+        title: const Text('Menopause Insights'),
         actions: [
           IconButton(
-            icon: _isLoadingAi ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh_rounded, color: Color(0xFF3A6EA8)),
+            icon: _isLoadingAi 
+                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) 
+                : Icon(Icons.refresh_rounded, color: Theme.of(context).colorScheme.secondary),
             onPressed: _isLoadingAi ? null : () => _generateInsight(force: true),
           )
         ],
@@ -196,17 +195,13 @@ Logs: $contextStr""";
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFFDDE8F5).withOpacity(0.8),
-                const Color(0xFFE8EDF4).withOpacity(0.6),
-              ],
+              colors: [Theme.of(context).colorScheme.secondary, Theme.of(context).primaryColor],
             ),
-            border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2E4A6B).withOpacity(0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.25),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -217,7 +212,7 @@ Logs: $contextStr""";
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF2E4A6B).withOpacity(0.5),
+                  color: Colors.white70,
                   letterSpacing: 2,
                 ),
               ),
@@ -227,7 +222,7 @@ Logs: $contextStr""";
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
-                  color: riskColor,
+                  color: Colors.white,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -251,9 +246,9 @@ Logs: $contextStr""";
               Text(
                 ai['riskDescription'] ?? '',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF7A8FA6),
+                  color: Colors.white.withOpacity(0.8),
                   height: 1.5,
                 ),
               ),
@@ -262,9 +257,9 @@ Logs: $contextStr""";
         ),
 
         const SizedBox(height: 24),
-        const Text(
+        Text(
           'Key Insights',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1A2B3C)),
+          style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 16),
         Row(
@@ -285,8 +280,14 @@ Logs: $contextStr""";
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.withOpacity(0.1)),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Text(
             ai['trendSummary'] ?? '',
@@ -308,7 +309,14 @@ Logs: $contextStr""";
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -337,7 +345,13 @@ Logs: $contextStr""";
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
