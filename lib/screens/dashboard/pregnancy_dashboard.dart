@@ -543,68 +543,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
           ],
         ),
 
-        const SizedBox(height: 16),
-
-        // ── Hydration Card ───────────────────────────────────
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'HYDRATION',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF3A6EA8),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '1.4L / 2.5L',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1A2B3C),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      '4 glasses remaining today',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF7A8FA6)),
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                children: List.generate(
-                  8,
-                  (index) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    width: 6,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: index < 5
-                          ? const Color(0xFF2E4A6B)
-                          : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
 
         const SizedBox(height: 8),
 

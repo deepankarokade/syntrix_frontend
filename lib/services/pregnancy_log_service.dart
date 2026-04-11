@@ -37,9 +37,9 @@ class PregnancyLogService {
     },
     {
       'key': 'morningWater',
-      'question': 'How many glasses of water so far?',
-      'type': 'select',
-      'options': ['0', '1', '2', '3', '4+'],
+      'question': 'How much water so far (in Litres)?',
+      'type': 'text',
+      'hint': 'e.g. 0.5L, 1L...',
       'icon': '💧',
     },
     {
@@ -88,9 +88,9 @@ class PregnancyLogService {
     },
     {
       'key': 'afternoonWater',
-      'question': 'Water intake since morning?',
-      'type': 'select',
-      'options': ['1-2 glasses', '3-4 glasses', '5-6 glasses', '7+ glasses'],
+      'question': 'Water intake since morning (in Litres)?',
+      'type': 'text',
+      'hint': 'e.g. 1.5L, 2L...',
       'icon': '💧',
     },
     {
@@ -154,9 +154,9 @@ class PregnancyLogService {
     },
     {
       'key': 'totalWater',
-      'question': 'Total water intake today?',
-      'type': 'select',
-      'options': ['Less than 4 glasses', '4-6 glasses', '7-8 glasses', '9-10 glasses', '10+ glasses'],
+      'question': 'Total water intake today (in Litres)?',
+      'type': 'text',
+      'hint': 'e.g. 2.5L, 3L...',
       'icon': '💧',
     },
     {
@@ -235,9 +235,13 @@ class PregnancyLogService {
 
   /// Fetch today's pregnancy logs for all 3 time slots
   static Future<Map<String, Map<String, dynamic>>> getTodayLogs(String uid) async {
-    final now = DateTime.now();
+    return getLogsForDate(uid, DateTime.now());
+  }
+
+  /// Fetch pregnancy logs for a specific date
+  static Future<Map<String, Map<String, dynamic>>> getLogsForDate(String uid, DateTime date) async {
     final dateStr =
-        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
     Map<String, Map<String, dynamic>> result = {};
 
@@ -254,6 +258,46 @@ class PregnancyLogService {
       }
     }
     return result;
+  }
+
+  /// Fetch all dates that have at least one lifestyle log entry
+  static Future<Set<String>> getAllLoggedDates(String uid) async {
+    final snapshot = await _db
+        .collection('pregnancy_logs')
+        .doc(uid)
+        .collection('daily_lifestyle')
+        .get();
+    
+    return snapshot.docs.map((doc) => doc.data()['date'] as String).toSet();
+  }
+
+  /// Save pregnancy insight to Firestore
+  static Future<void> savePregnancyInsight(String uid, String dateStr, String insight) async {
+    await _db
+        .collection('pregnancy_insights')
+        .doc(uid)
+        .collection('daily_history')
+        .doc(dateStr)
+        .set({
+      'date': dateStr,
+      'insight': insight,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Fetch pregnancy insight from Firestore
+  static Future<String?> getPregnancyInsight(String uid, String dateStr) async {
+    final doc = await _db
+        .collection('pregnancy_insights')
+        .doc(uid)
+        .collection('daily_history')
+        .doc(dateStr)
+        .get();
+    
+    if (doc.exists) {
+      return doc.data()?['insight'] as String?;
+    }
+    return null;
   }
 
   /// Fetch pregnancy logs for the last N days (for AI context)
@@ -357,7 +401,8 @@ class PregnancyLogService {
       if (slot == 'night') {
         if (answers['dinner'] == false || answers['dinner'] == 'No') skippedMeals++;
         if (answers['junkFood'] == true || answers['junkFood'] == 'Yes') junkFoodDays++;
-        if (answers['totalWater'] == 'Less than 4 glasses') lowWaterDays++;
+        final waterStr = (answers['totalWater'] ?? '').toString().toLowerCase();
+        if (waterStr.contains('less than 1') || waterStr.contains('0.5') || waterStr.startsWith('0')) lowWaterDays++;
         if (answers['sleepQuality'] == 'Poor' || answers['sleepQuality'] == 'Fair') poorSleepDays++;
         if (answers['caffeine'] == '3+ cups' || answers['caffeine'] == '2 cups') highCaffeineDays++;
         final pain = answers['nightPain'];

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../services/pregnancy_log_service.dart';
+import 'pregnancy_history_screen.dart';
 
 class PregnancyLogScreen extends StatefulWidget {
   final DateTime? editDate;
@@ -99,7 +100,7 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
     }
 
     try {
-      final logs = await PregnancyLogService.getTodayLogs(uid);
+      final logs = await PregnancyLogService.getLogsForDate(uid, _selectedDate);
 
       if (logs.containsKey('morning')) {
         _morningAnswers.addAll(logs['morning']!);
@@ -124,7 +125,7 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
         }
       }
     } catch (e) {
-      print('PregnancyLog: Error loading existing logs: $e');
+      print('PregnancyLog: Error loading logs for $_selectedDate: $e');
     }
 
     if (mounted) setState(() => _isLoading = false);
@@ -257,7 +258,7 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Pregnancy Lifestyle Log',
+              'Lifestyle Log',
               style: TextStyle(
                 color: Color(0xFF2E4A6B),
                 fontWeight: FontWeight.w700,
@@ -274,6 +275,20 @@ class _PregnancyLogScreenState extends State<PregnancyLogScreen>
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded, color: Color(0xFF3A6EA8)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PregnancyHistoryScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(52),
           child: Container(

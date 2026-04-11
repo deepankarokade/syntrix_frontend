@@ -112,7 +112,10 @@ class _PregnancyInsightsScreenState extends State<PregnancyInsightsScreen>
       }
       if (slot == 'night') {
         if (answers['junkFood'] == true) junkFood++;
-        if (answers['totalWater'] == 'Less than 4 glasses') lowWater++;
+        if (answers['totalWater'] == 'Less than 1L' ||
+            answers['totalWater'] == '1-1.5L') {
+          lowWater++;
+        }
         if (answers['sleepQuality'] == 'Poor' ||
             answers['sleepQuality'] == 'Fair') {
           poorSleep++;
@@ -136,6 +139,21 @@ class _PregnancyInsightsScreenState extends State<PregnancyInsightsScreen>
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) throw Exception('Not logged in');
+
+      // First, try to fetch today's existing insight from Firestore
+      final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      String? existing =
+          await PregnancyLogService.getPregnancyInsight(uid, dateStr);
+
+      if (existing != null) {
+        if (mounted) {
+          setState(() {
+            _aiInsight = existing;
+            _isLoadingAi = false;
+          });
+        }
+        return;
+      }
 
       // Get general health context
       String contextStr = await AiService.getGroundingContext();
@@ -200,6 +218,8 @@ Be direct, specific, and use the ACTUAL log data — don't be generic. If she's 
       );
 
       if (mounted && result != null) {
+        // Save to Firestore
+        await PregnancyLogService.savePregnancyInsight(uid, dateStr, result);
         setState(() => _aiInsight = result);
       }
     } catch (e) {
