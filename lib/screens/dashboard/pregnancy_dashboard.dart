@@ -7,7 +7,6 @@ import '../chatbot/chatbot_screen.dart';
 import '../diet/diet_planner_screen.dart';
 import '../step_tracker/step_tracker_screen.dart';
 import '../medicine/medicine_management_screen.dart';
-import '../logs/pregnancy_log_screen.dart';
 import '../../services/step_tracker_service.dart';
 import '../../services/blood_sugar_service.dart';
 
@@ -199,7 +198,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         const SizedBox(height: 18),
 
@@ -219,12 +218,6 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.settings, color: Color(0xFF2E4A6B)),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
             ),
             const SizedBox(width: 4),
             InkWell(
@@ -578,7 +571,7 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
               child: _quickAction(
                 icon: Icons.chat_bubble_outline,
@@ -595,11 +588,11 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
               child: _quickAction(
                 icon: Icons.restaurant_menu,
-                label: 'Meal Plan',
+                label: 'Meal\nPlan',
                 color: const Color(0xFF2E7D6B),
                 bgColor: const Color(0xFFE0F4F0),
                 onTap: () {
@@ -612,11 +605,11 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
               child: _quickAction(
                 icon: Icons.medication,
-                label: 'Medicine\nReminder',
+                label: 'Medicine',
                 color: const Color(0xFFE67E22),
                 bgColor: const Color(0xFFFFF3E0),
                 onTap: () {
@@ -647,8 +640,8 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 110,
-        height: 120,
+        height: 110,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -658,21 +651,25 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Row(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 24),
-            const SizedBox(width: 10),
-            Text(
-              label.replaceAll('\n', ' '),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                height: 1.2,
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(height: 8),
+            Flexible(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  height: 1.1,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
