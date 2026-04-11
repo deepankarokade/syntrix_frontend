@@ -15,6 +15,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Map<String, dynamic>? _aiInsights;
   bool _loadingAi = true;
 
+  bool _loading = true;
+  String? _error;
+  PcosResult? _result;
+
   @override
   void initState() {
     super.initState();
@@ -267,7 +271,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
       case 'restaurant': return Icons.restaurant_rounded;
       case 'self_improvement': return Icons.self_improvement_rounded;
       case 'water_drop': return Icons.water_drop_rounded;
-      case 'medkit': return Icons.medkit_rounded;
+      case 'medkit': return Icons.medical_services_rounded;
       case 'sleep': return Icons.bedtime_rounded;
       default: return Icons.check_circle_rounded;
     }

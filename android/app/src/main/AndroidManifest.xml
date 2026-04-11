@@ -26,9 +26,9 @@
     <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false"/>
     
     <application
-        android:label="syntrix"
+        android:label="Sakhi"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"

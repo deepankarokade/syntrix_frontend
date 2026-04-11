@@ -32,9 +32,9 @@ class EmailService {
       'template_params': {
         'to_name': toName,
         'to_email': toEmail,
-        'app_name': 'Serene Cycle',
+        'app_name': 'Sakhi',
         'welcome_message':
-            'We\'re so glad you\'re here. Serene Cycle is your personal space '
+            'We\'re so glad you\'re here. Sakhi is your personal space '
             'to track your hormonal health, understand your cycle, and take '
             'control of your wellbeing — one day at a time.\n\n'
             'Start by completing your profile and logging your first cycle. '

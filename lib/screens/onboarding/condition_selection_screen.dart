@@ -17,7 +17,7 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
   String _selectedCondition = 'none';
   String _selectedTrimester = '1st Trimester (Weeks 1–12)';
   final _weekController = TextEditingController(text: '12'); // Default week
-  final _descriptionController = TextEditingController();
+
   bool _isLoading = false;
 
   @override
@@ -36,9 +36,7 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
         final data = doc.data()!;
         setState(() {
           _selectedCondition = data['lifeStage'] ?? 'none';
-          if (data['personalDescription'] != null) {
-            _descriptionController.text = data['personalDescription'];
-          }
+
           if (_selectedCondition == 'pregnant' && data['pregnancyWeek'] != null) {
             _weekController.text = data['pregnancyWeek'].toString();
           }
@@ -93,7 +91,6 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
 
       final Map<String, dynamic> data = {
         'lifeStage': _selectedCondition,
-        'personalDescription': _descriptionController.text.trim(),
         'onboardingCompleted': true,
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -221,7 +218,7 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 28),
                   child: Text(
-                    'Serene',
+                    'Sakhi',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -321,59 +318,7 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
 
                         const SizedBox(height: 20),
 
-                        // ── Optional Description ─────────────────────
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Tell us more about you (Optional)',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1A2B3C),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF2E4A6B,
-                                ).withValues(alpha: 0.06),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _descriptionController,
-                            maxLines: 4,
-                            maxLength: 250,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF1A2B3C),
-                            ),
-                            decoration: InputDecoration(
-                              hintText:
-                                  'e.g., Any specific symptoms, medical history, or goals...',
-                              hintStyle: const TextStyle(
-                                color: Color(0xFFB0BEC5),
-                              ),
-                              contentPadding: const EdgeInsets.all(20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
-                          ),
-                        ),
 
-                        const SizedBox(height: 20),
 
                         // ── Privacy notice ───────────────────────────
                         Container(
@@ -393,7 +338,7 @@ class _ConditionSelectionScreenState extends State<ConditionSelectionScreen> {
                               const SizedBox(width: 12),
                               const Expanded(
                                 child: Text(
-                                  'Your health data is encrypted and private. We use this only to adjust your tracking algorithms.',
+                                  'Your data is private. We use this only to adjust your tracking algorithms.',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF7A8FA6),

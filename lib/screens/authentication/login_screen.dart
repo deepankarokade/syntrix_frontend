@@ -181,23 +181,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Leaf icon badge
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2E4A6B),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.energy_savings_leaf_rounded,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
+                              Image.asset(
+                                'assets/images/logo/logo.png',
+                                width: 36,
+                                height: 36,
                               ),
                               const SizedBox(width: 10),
                               const Text(
-                                'Serene Cycle',
+                                'Sakhi',
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,

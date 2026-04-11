@@ -69,7 +69,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     const Spacer(flex: 3),
 
                     // Central Logo
-                    // Outer subtle circular ring / shadow area
                     Container(
                       width: 220,
                       height: 220,
@@ -78,41 +77,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         color: const Color(0xFFDCE6ED).withOpacity(0.7),
                       ),
                       alignment: Alignment.center,
-                      child: Container(
+                      child: Image.asset(
+                        'assets/images/logo/logo.png',
                         width: 170,
                         height: 170,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(46), // Squircle shape
-                          color: const Color(0xFFE2EFF9),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFFE2EFF9),
-                              Color(0xFFFAECEE), // pinkish tint on bottom right
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withOpacity(0.9),
-                              offset: const Offset(-6, -6),
-                              blurRadius: 12,
-                            ),
-                            BoxShadow(
-                              color: const Color(0xFFB4C5D3).withOpacity(0.4),
-                              offset: const Offset(8, 8),
-                              blurRadius: 16,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          // The custom 3-leaf logo matching the image
-                          // Using a custom painter to draw exact 3 leaves instead of generic icon
-                          child: CustomPaint(
-                            size: const Size(80, 80),
-                            painter: ThreeLeavesPainter(),
-                          ),
-                        ),
                       ),
                     ),
 
@@ -120,7 +88,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
                     // Title
                     const Text(
-                      'Serene Cycle',
+                      'Sakhi',
                       style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.w900,

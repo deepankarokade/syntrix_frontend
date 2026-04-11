@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Syntrix</string>
+	<string>Sakhi</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>syntrix</string>
+	<string>Sakhi</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -68,10 +68,10 @@
 	</array>
 	<!-- Permissions for image_picker and file_picker -->
 	<key>NSCameraUsageDescription</key>
-	<string>Syntrix needs camera access to capture your health report documents.</string>
+	<string>Sakhi needs camera access to capture your health report documents.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Syntrix needs photo library access to upload your health report images.</string>
+	<string>Sakhi needs photo library access to upload your health report images.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Syntrix needs access to save report images to your photo library.</string>
+	<string>Sakhi needs access to save report images to your photo library.</string>
 </dict>
 </plist>

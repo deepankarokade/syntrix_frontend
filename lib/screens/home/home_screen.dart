@@ -318,14 +318,20 @@ class _HomeScreenState extends State<HomeScreen> {
           : ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
-                const SizedBox(height: 18),
+                const SizedBox(height: 24),
 
                 // ── Top bar ──────────────────────────────────────────
                 Row(
                   children: [
+                    Image.asset(
+                      'assets/images/logo/logo.png',
+                      width: 28,
+                      height: 28,
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Serene Cycle',
+                        'Sakhi',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,

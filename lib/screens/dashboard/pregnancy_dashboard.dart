@@ -9,6 +9,8 @@ import '../step_tracker/step_tracker_screen.dart';
 import '../medicine/medicine_management_screen.dart';
 import '../../services/step_tracker_service.dart';
 import '../../services/blood_sugar_service.dart';
+import '../../services/pregnancy_log_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PregnancyDashboard extends StatefulWidget {
   final String userName;
@@ -45,6 +47,8 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
   double _lastBloodSugar = 94.0;
   String _lastBloodSugarType = 'Pre-meal';
   bool _isLoadingBloodSugar = true;
+
+  int _currentWeek = 20;
 
   @override
   void initState() {
@@ -183,12 +187,86 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
       savedTrimester = prefs.getString('selectedTrimester');
     }
 
+    int week = prefs.getInt("pregnancyWeek") ?? 20;
+
     if (mounted) {
       setState(() {
         if (savedWeight != null) _localWeight = savedWeight;
         if (savedTrimester != null) trimester = savedTrimester;
+        _currentWeek = week;
       });
     }
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final info = await PregnancyLogService.getPregnancyInfo(uid);
+        if (mounted && info['currentWeek'] != null) {
+          setState(() {
+            _currentWeek = info['currentWeek']!;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading pregnancy info: $e');
+    }
+  }
+
+  String _getBabySizeForWeek(int week) {
+    if (week <= 4) return 'Poppy Seed';
+    if (week <= 6) return 'Sweet Pea';
+    if (week <= 8) return 'Raspberry';
+    if (week <= 10) return 'Prune';
+    if (week <= 12) return 'Lime';
+    if (week <= 14) return 'Lemon';
+    if (week <= 16) return 'Avocado';
+    if (week <= 18) return 'Bell Pepper';
+    if (week <= 20) return 'Banana';
+    if (week <= 22) return 'Papaya';
+    if (week <= 24) return 'Corn on the Cob';
+    if (week <= 26) return 'Lettuce';
+    if (week <= 28) return 'Eggplant';
+    if (week <= 30) return 'Coconut';
+    if (week <= 32) return 'Squash';
+    if (week <= 34) return 'Pineapple';
+    if (week <= 36) return 'Honeydew Melon';
+    if (week <= 38) return 'Pumpkin';
+    return 'Watermelon';
+  }
+
+  String _getBabyEmojiForWeek(int week) {
+    if (week <= 4) return '🌱';
+    if (week <= 6) return '🫛';
+    if (week <= 8) return '🫐';
+    if (week <= 10) return '🍇';
+    if (week <= 12) return '🍋';
+    if (week <= 14) return '🍋';
+    if (week <= 16) return '🥑';
+    if (week <= 18) return '🫑';
+    if (week <= 20) return '🍌';
+    if (week <= 22) return '🥭';
+    if (week <= 24) return '🌽';
+    if (week <= 26) return '🥬';
+    if (week <= 28) return '🍆';
+    if (week <= 30) return '🥥';
+    if (week <= 32) return '🎃'; // standard emoji used here
+    if (week <= 34) return '🍍';
+    if (week <= 36) return '🍈';
+    if (week <= 38) return '🎃';
+    return '🍉';
+  }
+
+  String _getBabyLengthForWeek(int week) {
+    if (week <= 4) return '< 1 cm';
+    if (week <= 8) return '1.5–2 cm';
+    if (week <= 12) return '5–7 cm';
+    if (week <= 16) return '11–12 cm';
+    if (week <= 20) return '25–26 cm';
+    if (week <= 24) return '30–32 cm';
+    if (week <= 28) return '37–38 cm';
+    if (week <= 32) return '42–43 cm';
+    if (week <= 36) return '47–48 cm';
+    return '50+ cm';
   }
 
   void onTabChange(int index) {
@@ -200,16 +278,20 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
-        const SizedBox(height: 18),
+        const SizedBox(height: 24),
 
         // ── Top bar ──────────────────────────────────────────
         Row(
           children: [
-            const Icon(Icons.face, size: 24, color: Color(0xFF2E4A6B)),
+            Image.asset(
+              'assets/images/logo/logo.png',
+              width: 28,
+              height: 28,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Serene – $conditionLabel',
+                'Sakhi – $conditionLabel',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -389,23 +471,9 @@ class _PregnancyDashboardState extends State<PregnancyDashboard> {
         // ── Baby's Size Card ─────────────────────────────────
         Builder(
           builder: (context) {
-            String babySize = 'Pear';
-            String babyLength = '25–30 cm';
-            String babyIcon = '🍐';
-
-            if (trimester.contains('1st')) {
-              babySize = 'Lemon';
-              babyLength = '7–8 cm';
-              babyIcon = '🍋';
-            } else if (trimester.contains('2nd')) {
-              babySize = 'Papaya';
-              babyLength = '25–30 cm';
-              babyIcon = '🥭';
-            } else if (trimester.contains('3rd')) {
-              babySize = 'Watermelon';
-              babyLength = '45–50 cm';
-              babyIcon = '🍉';
-            }
+            String babySize = _getBabySizeForWeek(_currentWeek);
+            String babyLength = _getBabyLengthForWeek(_currentWeek);
+            String babyIcon = _getBabyEmojiForWeek(_currentWeek);
 
             return Container(
               padding: const EdgeInsets.all(16),

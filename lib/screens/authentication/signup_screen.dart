@@ -457,6 +457,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 28),
 
+                  // ── Sakhi logo row ─────────────────────────────────────
+                  Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          'assets/images/logo/logo.png',
+                          width: 36,
+                          height: 36,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Sakhi',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF2E4A6B),
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
                   // ── Title + subtitle ───────────────────────────────────
                   const Center(
                     child: Text(
@@ -817,7 +843,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         children: [
                           TextSpan(
                             text:
-                                "By creating an account, you agree to Serene Cycle's\n",
+                                "By creating an account, you agree to Sakhi's\n",
                           ),
                           TextSpan(
                             text: 'Terms of Service',
