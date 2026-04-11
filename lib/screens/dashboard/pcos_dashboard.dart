@@ -382,65 +382,6 @@ class PCOSDashboard extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: 24),
-
-        // ── Recommended for you ───────────────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Recommended for you',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A2B3C),
-              ),
-            ),
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                'View All',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF3A6EA8),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 200,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _recommendCard(
-                tag: '15 MIN',
-                title: 'Morning Yoga',
-                subtitle: 'Gentle flow for cortisol balance',
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3A6EA8), Color(0xFF2E4A6B)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                icon: Icons.self_improvement,
-              ),
-              _recommendCard(
-                tag: 'NUTRITION',
-                title: 'Low Glycemic Diet',
-                subtitle: 'Stabilize blood sugar naturally',
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2E7D6B), Color(0xFF1A5C4E)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                icon: Icons.restaurant_outlined,
-              ),
-            ],
-          ),
-        ),
-
         const SizedBox(height: 30),
       ],
     );
