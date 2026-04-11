@@ -9,7 +9,8 @@ import '../onboarding/condition_selection_screen.dart';
 import '../../widgets/auth_wrapper.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final VoidCallback? onBack;
+  const ProfileScreen({super.key, this.onBack});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -256,8 +257,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
               // ── AppBar ─────────────────────────────────────────────
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  if (widget.onBack != null || Navigator.canPop(context))
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF2E4A6B), size: 20),
+                      onPressed: () {
+                        if (widget.onBack != null) {
+                          widget.onBack!();
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  if (widget.onBack != null || Navigator.canPop(context))
+                    const SizedBox(width: 16),
                   const Text(
                     'Profile',
                     style: TextStyle(
@@ -421,26 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 32),
 
-              // ── App Settings Section ───────────────────────────────
-              _sectionHeader('APP SETTINGS'),
-              const SizedBox(height: 16),
-              _settingsTile(
-                Icons.notifications_none_rounded,
-                'Notifications',
-                'Customize alerts and daily reminders',
-              ),
-              const SizedBox(height: 12),
-              _settingsTile(
-                Icons.privacy_tip_outlined,
-                'Privacy',
-                'Manage your data and visibility',
-              ),
-              const SizedBox(height: 12),
-              _settingsTile(
-                Icons.security_rounded,
-                'Security',
-                'Password and biometric access',
-              ),
+
 
               const SizedBox(height: 48),
 

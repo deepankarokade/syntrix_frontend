@@ -55,6 +55,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   // Calendar picker state
   Map<String, Map<String, dynamic>> _periodLogs = {};
   DateTime? _predictedNextPeriod;
+  late DateTime _calendarDisplayMonth;
 
   // ── Pregnancy-specific fields ──
   String _nausea = 'None';
@@ -78,6 +79,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   void initState() {
     super.initState();
     _selectedLogDate = widget.editDate ?? DateTime.now();
+    _calendarDisplayMonth = DateTime(_selectedLogDate.year, _selectedLogDate.month);
     _fetchUserProfile();
     _fetchPeriodLogs();
     if (widget.existingData != null) {
@@ -170,13 +172,13 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   List<String> _getSymptomsForCondition() {
     switch (_lifeStage?.toLowerCase()) {
       case 'pcos':
-        return ['Acne', 'Fatigue', 'Bloating', 'Cramps', 'Mood Swings', 'Headache', 'Facial Hair', 'Hair Loss', 'Skin Darkening', 'Weight Gain', 'Irregular Periods'];
+        return ['Acne', 'Fatigue', 'Bloating', 'Cramps', 'Mood Swings', 'Headache', 'Facial hair growth', 'Hair Loss', 'Skin darkening'];
       case 'pregnant':
-        return ['Nausea', 'Back Pain', 'Fatigue', 'Headache', 'Heartburn', 'Insomnia', 'Mood Swings', 'Leg Cramps', 'Shortness of Breath', 'Dizziness', 'Constipation'];
+        return ['Nausea', 'Back Pain', 'Fatigue', 'Headache', 'Heartburn', 'Insomnia', 'Mood Swings', 'Leg Cramps', 'Shortness of Breath', 'Dizziness', 'Constipation', 'Facial hair growth', 'Skin darkening'];
       case 'menopause':
-        return ['Hot Flashes', 'Night Sweats', 'Fatigue', 'Joint Pain', 'Vaginal Dryness', 'Mood Swings', 'Insomnia', 'Brain Fog', 'Headache', 'Weight Gain', 'Anxiety'];
+        return ['Hot Flashes', 'Night Sweats', 'Fatigue', 'Joint Pain', 'Vaginal Dryness', 'Mood Swings', 'Insomnia', 'Brain Fog', 'Headache', 'Anxiety', 'Facial hair growth', 'Skin darkening'];
       default:
-        return ['Acne', 'Fatigue', 'Bloating', 'Cramps', 'Mood Swings', 'Headache', 'Hair Loss', 'Hot Flashes', 'Night Sweats', 'Joint Pain'];
+        return ['Acne', 'Fatigue', 'Bloating', 'Cramps', 'Mood Swings', 'Headache', 'Hair Loss', 'Hot Flashes', 'Night Sweats', 'Joint Pain', 'Facial hair growth', 'Skin darkening'];
     }
   }
 
@@ -323,29 +325,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () => _showCustomDatePicker(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.calendar_month_outlined, color: Theme.of(context).primaryColor, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Date: ${DateFormat('MMMM dd, yyyy').format(_selectedLogDate)} (Tap to change)",
-                          style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).primaryColor),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _sectionHeader('SELECT DATE'),
+              const SizedBox(height: 16),
+              _buildInlineCalendar(),
               const SizedBox(height: 32),
 
               // ── [ CYCLE ] (Hidden if Pregnant or Menopause) ─────────
@@ -416,26 +398,6 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
                           selected: _flowIntensity,
                           onSelect: (val) =>
                               setState(() => _flowIntensity = val),
-                        ),
-                      ] else ...[
-                        const SizedBox(height: 24),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Current Cycle Phase (Optional)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF7A8FA6),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _segmentSelector(
-                          options: ['Follicular', 'Ovulation', 'Luteal'],
-                          selected: _selectedPhase,
-                          onSelect: (val) =>
-                              setState(() => _selectedPhase = val),
                         ),
                       ],
                     ],
@@ -579,10 +541,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
               // ── [ SYMPTOMS ] ───────────────────────────────────────
               _sectionHeader('SYMPTOMS'),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: _getSymptomsForCondition().map(_buildSymptomChip).toList(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _getSymptomsForCondition().map(_buildSymptomRow).toList(),
               ),
               const SizedBox(height: 32),
 
@@ -639,31 +600,6 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
               ),
               const SizedBox(height: 32),
 
-              // ── [ METABOLIC ] ──────────────────────────────────────
-              _sectionHeader('METABOLIC'),
-              const SizedBox(height: 16),
-              _labeledContainer(
-                label: 'Blood Sugar Tracker (20-600 mg/dL)',
-                child: Column(
-                  children: [
-                    _segmentSelector(
-                      options: ['Fasting', 'Post-meal'],
-                      selected: _sugarContext,
-                      onSelect: (val) => setState(() => _sugarContext = val),
-                    ),
-                    const SizedBox(height: 16),
-                    _inputCard(
-                      icon: Icons.opacity_rounded,
-                      label: 'Current Reading',
-                      controller: _bloodSugarCtrl,
-                      suffix: 'mg/dL',
-                      hint: '0',
-                      iconColor: Colors.red.shade400,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
 
               // ── [ LIFESTYLE ] ──────────────────────────────────────
               _sectionHeader('LIFESTYLE'),
@@ -718,45 +654,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
               ),
               const SizedBox(height: 32),
 
-              // ── [ OPTIONAL ] ──────────────────────────────────────
-              _sectionHeader('OPTIONAL'),
-              const SizedBox(height: 16),
-              _labeledContainer(
-                label: 'Did you take medication today?',
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _choiceButton(
-                          'Yes',
-                          _tookMedication,
-                          () => setState(() => _tookMedication = true),
-                        ),
-                        const SizedBox(width: 12),
-                        _choiceButton(
-                          'No',
-                          !_tookMedication,
-                          () => setState(() => _tookMedication = false),
-                        ),
-                      ],
-                    ),
-                    if (_tookMedication) ...[
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _medicationNameCtrl,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter medication name...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
 
-              const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,
                 height: 60,
@@ -786,208 +684,174 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
   // ── Helper UI Components ──
 
 
-  void _showCustomDatePicker() {
-    DateTime sheetMonth = DateTime(_selectedLogDate.year, _selectedLogDate.month);
+  Widget _buildInlineCalendar() {
+    final today = DateTime.now();
+    final firstDay = DateTime(_calendarDisplayMonth.year, _calendarDisplayMonth.month, 1);
+    final daysInMonth = DateTime(_calendarDisplayMonth.year, _calendarDisplayMonth.month + 1, 0).day;
+    final startWeekday = firstDay.weekday % 7; // 0=Sun
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            final today = DateTime.now();
-            final firstDay = DateTime(sheetMonth.year, sheetMonth.month, 1);
-            final daysInMonth = DateTime(sheetMonth.year, sheetMonth.month + 1, 0).day;
-            final startWeekday = firstDay.weekday % 7; // 0=Sun
+    List<Widget> dayCells = [];
+    // Empty leading cells
+    for (int i = 0; i < startWeekday; i++) {
+        dayCells.add(const SizedBox());
+    }
+    for (int d = 1; d <= daysInMonth; d++) {
+        final dt = DateTime(_calendarDisplayMonth.year, _calendarDisplayMonth.month, d);
+        final dateStr = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+        final logData = _periodLogs[dateStr];
+        final isOnPeriod = logData != null && logData['isOnPeriod'] == true;
+        final hasLog = logData != null;
+        final isToday = dt.year == today.year && dt.month == today.month && dt.day == today.day;
+        final isSelected = dt.year == _selectedLogDate.year && dt.month == _selectedLogDate.month && dt.day == _selectedLogDate.day;
+        final isFuture = dt.isAfter(today);
 
-            List<Widget> dayCells = [];
-            // Empty leading cells
-            for (int i = 0; i < startWeekday; i++) {
-              dayCells.add(const SizedBox());
-            }
-            for (int d = 1; d <= daysInMonth; d++) {
-              final dt = DateTime(sheetMonth.year, sheetMonth.month, d);
-              final dateStr = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-              final logData = _periodLogs[dateStr];
-              final isOnPeriod = logData != null && logData['isOnPeriod'] == true;
-              final hasLog = logData != null;
-              final isToday = dt.year == today.year && dt.month == today.month && dt.day == today.day;
-              final isSelected = dt.year == _selectedLogDate.year && dt.month == _selectedLogDate.month && dt.day == _selectedLogDate.day;
-              final isFuture = dt.isAfter(today);
+        // Predicted window: next period ± 2 days
+        bool isPredicted = false;
+        if (_predictedNextPeriod != null && !isOnPeriod) {
+            final diff = dt.difference(_predictedNextPeriod!).inDays.abs();
+            isPredicted = diff <= 2;
+        }
 
-              // Predicted window: next period ± 2 days
-              bool isPredicted = false;
-              if (_predictedNextPeriod != null && !isOnPeriod) {
-                final diff = dt.difference(_predictedNextPeriod!).inDays.abs();
-                isPredicted = diff <= 2;
-              }
+        Color bgColor = Colors.transparent;
+        Color textColor = isFuture ? const Color(0xFFB0BEC5) : const Color(0xFF1A2B3C);
+        BoxBorder? border;
 
-              Color bgColor = Colors.transparent;
-              Color textColor = isFuture ? const Color(0xFFB0BEC5) : const Color(0xFF1A2B3C);
-              BoxBorder? border;
+        if (isOnPeriod) {
+            bgColor = const Color(0xFFFFCDD2);
+            textColor = const Color(0xFFB5616A);
+        } else if (isPredicted) {
+            bgColor = const Color(0xFFFFECEC);
+            textColor = const Color(0xFFB5616A);
+        } else if (hasLog) {
+            bgColor = const Color(0xFFE3F2FD);
+            textColor = const Color(0xFF1E5BB1);
+        }
 
-              if (isOnPeriod) {
-                bgColor = const Color(0xFFFFCDD2);
-                textColor = const Color(0xFFB5616A);
-              } else if (isPredicted) {
-                bgColor = const Color(0xFFFFECEC);
-                textColor = const Color(0xFFB5616A);
-              } else if (hasLog) {
-                bgColor = const Color(0xFFE3F2FD);
-                textColor = const Color(0xFF1E5BB1);
-              }
+        if (isToday) {
+            border = Border.all(color: const Color(0xFF1E5BB1), width: 2);
+        }
+        if (isSelected) {
+            bgColor = const Color(0xFF1E5BB1);
+            textColor = Colors.white;
+            border = null;
+        }
 
-              if (isToday) {
-                border = Border.all(color: const Color(0xFF1E5BB1), width: 2);
-              }
-              if (isSelected) {
-                bgColor = const Color(0xFF1E5BB1);
-                textColor = Colors.white;
-                border = null;
-              }
-
-              dayCells.add(
-                GestureDetector(
-                  onTap: isFuture ? null : () {
-                    setSheetState(() {});
-                    setState(() => _selectedLogDate = dt);
-                    Navigator.pop(ctx);
-                  },
-                  child: Container(
+        dayCells.add(
+            GestureDetector(
+                onTap: isFuture ? null : () {
+                    setState(() {
+                         _selectedLogDate = dt;
+                    });
+                },
+                child: Container(
                     margin: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      color: bgColor,
-                      shape: BoxShape.circle,
-                      border: border,
+                        color: bgColor,
+                        shape: BoxShape.circle,
+                        border: border,
                     ),
                     child: Center(
-                      child: Text(
-                        '$d',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected || isToday ? FontWeight.w700 : FontWeight.w500,
-                          color: textColor,
+                        child: Text(
+                            '$d',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isSelected || isToday ? FontWeight.w700 : FontWeight.w500,
+                                color: textColor,
+                            ),
                         ),
-                      ),
                     ),
-                  ),
                 ),
-              );
-            }
+            ),
+        );
+    }
 
-            return Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFF4F6FA),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Handle bar
-                  Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDDE5EE),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Month navigation
-                  Row(
+    return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                ),
+            ],
+        ),
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+                // Month navigation
+                Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left, color: Color(0xFF1E5BB1)),
-                        onPressed: () => setSheetState(() {
-                          sheetMonth = DateTime(sheetMonth.year, sheetMonth.month - 1);
-                        }),
-                      ),
-                      Text(
-                        DateFormat('MMMM yyyy').format(sheetMonth),
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E5BB1),
+                        IconButton(
+                            icon: const Icon(Icons.chevron_left, color: Color(0xFF1E5BB1)),
+                            onPressed: () => setState(() {
+                                _calendarDisplayMonth = DateTime(_calendarDisplayMonth.year, _calendarDisplayMonth.month - 1);
+                            }),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right, color: Color(0xFF1E5BB1)),
-                        onPressed: sheetMonth.isBefore(DateTime(today.year, today.month))
-                            ? null
-                            : () => setSheetState(() {
-                                sheetMonth = DateTime(sheetMonth.year, sheetMonth.month + 1);
-                              }),
-                      ),
+                        Text(
+                            DateFormat('MMMM yyyy').format(_calendarDisplayMonth),
+                            style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E5BB1),
+                            ),
+                        ),
+                        IconButton(
+                            icon: const Icon(Icons.chevron_right, color: Color(0xFF1E5BB1)),
+                            onPressed: _calendarDisplayMonth.isBefore(DateTime(today.year, today.month))
+                                ? () => setState(() {
+                                    _calendarDisplayMonth = DateTime(_calendarDisplayMonth.year, _calendarDisplayMonth.month + 1);
+                                  })
+                                : null,
+                        ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Calendar card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Days of week header
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                              .map((d) => SizedBox(
-                                    width: 36,
-                                    child: Center(
-                                      child: Text(d,
+                ),
+                const SizedBox(height: 16),
+                // Days of week header
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                        .map((d) => SizedBox(
+                                width: 36,
+                                child: Center(
+                                    child: Text(d,
                                         style: const TextStyle(
-                                          color: Color(0xFFA0B1C5),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
+                                            color: Color(0xFFA0B1C5),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
                                         ),
-                                      ),
                                     ),
-                                  ))
-                              .toList(),
-                        ),
-                        const SizedBox(height: 8),
-                        // Grid
-                        GridView.count(
-                          crossAxisCount: 7,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          childAspectRatio: 1,
-                          children: dayCells,
-                        ),
-                        const SizedBox(height: 12),
-                        // Legend
-                        Wrap(
-                          spacing: 14,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            _legendDot(const Color(0xFFFFCDD2), 'Period'),
-                            _legendDot(const Color(0xFFFFECEC), 'Predicted'),
-                            _legendDot(const Color(0xFFE3F2FD), 'Logged'),
-                            _legendDot(Colors.white, 'Today', border: const Color(0xFF1E5BB1)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+                                ),
+                            ))
+                        .toList(),
+                ),
+                const SizedBox(height: 8),
+                // Grid
+                GridView.count(
+                    crossAxisCount: 7,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 1,
+                    children: dayCells,
+                ),
+                const SizedBox(height: 12),
+                // Legend
+                Wrap(
+                    spacing: 14,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: [
+                        _legendDot(const Color(0xFFFFCDD2), 'Period'),
+                        _legendDot(const Color(0xFFFFECEC), 'Predicted'),
+                        _legendDot(const Color(0xFFE3F2FD), 'Logged'),
+                        _legendDot(Colors.white, 'Today', border: const Color(0xFF1E5BB1)),
+                    ],
+                ),
+            ],
+        ),
     );
   }
 
@@ -1107,80 +971,67 @@ class _LogEntryScreenState extends State<LogEntryScreen> {
     );
   }
 
-  Widget _buildSymptomChip(String label) {
-    bool isSelected = _selectedSymptoms.containsKey(label);
-    String severity = _selectedSymptoms[label] ?? 'Mild';
+  Widget _buildSymptomRow(String label) {
+    String currentSeverity = _selectedSymptoms[label] ?? 'None';
+    double sliderValue = 0;
+    if (currentSeverity.startsWith('Mild')) sliderValue = 1;
+    if (currentSeverity.startsWith('Mod')) sliderValue = 2;
+    if (currentSeverity.startsWith('Sev')) sliderValue = 3;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          if (isSelected) {
-            _selectedSymptoms.remove(label);
-          } else {
-            _selectedSymptoms[label] = 'Mild';
-          }
-        });
-      },
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFB1D6E2) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected
-                    ? const Color(0xFF7DA6B8)
-                    : const Color(0xFFF0F4F8),
-              ),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? Theme.of(context).primaryColor
-                    : Theme.of(context).textTheme.bodyMedium?.color,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                fontSize: 13,
-              ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A2B3C),
             ),
           ),
-          if (isSelected) ...[
-            const SizedBox(height: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: ['Mild', 'Mod', 'Sev'].map((s) {
-                bool isS = severity.startsWith(s);
-                return GestureDetector(
-                  onTap: () => setState(
-                    () => _selectedSymptoms[label] = s == 'Mod'
-                        ? 'Moderate'
-                        : (s == 'Sev' ? 'Severe' : 'Mild'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('None', style: TextStyle(fontSize: 12, color: Color(0xFF7A8FA6))),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: const Color(0xFFAA5E5F),
+                    inactiveTrackColor: const Color(0xFFE8F0F8),
+                    thumbColor: const Color(0xFFAA5E5F),
+                    overlayColor: const Color(0xFFAA5E5F).withValues(alpha: 0.2),
+                    valueIndicatorColor: const Color(0xFFAA5E5F),
+                    tickMarkShape: const RoundSliderTickMarkShape(),
+                    activeTickMarkColor: Colors.white,
+                    inactiveTickMarkColor: const Color(0xFFAA5E5F),
                   ),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 4),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isS ? const Color(0xFF2E4A6B) : Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFF0F4F8)),
-                    ),
-                    child: Text(
-                      s,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: isS ? Colors.white : const Color(0xFF2E4A6B),
-                      ),
-                    ),
+                  child: Slider(
+                    value: sliderValue,
+                    min: 0,
+                    max: 3,
+                    divisions: 3,
+                    label: sliderValue == 0 ? 'None' : sliderValue == 1 ? 'Mild' : sliderValue == 2 ? 'Mod' : 'Sev',
+                    onChanged: (val) {
+                      setState(() {
+                        if (val == 0) {
+                          _selectedSymptoms.remove(label);
+                        } else if (val == 1) {
+                          _selectedSymptoms[label] = 'Mild';
+                        } else if (val == 2) {
+                          _selectedSymptoms[label] = 'Moderate';
+                        } else if (val == 3) {
+                          _selectedSymptoms[label] = 'Severe';
+                        }
+                      });
+                    },
                   ),
-                );
-              }).toList(),
-            ),
-          ],
+                ),
+              ),
+              const Text('Sev', style: TextStyle(fontSize: 12, color: Color(0xFFAA5E5F))),
+            ],
+          ),
         ],
       ),
     );

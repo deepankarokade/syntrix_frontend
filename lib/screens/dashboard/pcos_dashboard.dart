@@ -33,6 +33,41 @@ class PCOSDashboard extends StatelessWidget {
     required this.onTabChange,
   });
 
+  LinearGradient _getPhaseGradient() {
+    final phase = phaseName ?? '';
+    if (phase.contains('Menstrual')) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFB5616A), Color(0xFF8E4A50)],
+      );
+    } else if (phase.contains('Ovulation')) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF88C0D0), Color(0xFF81A1C1)],
+      );
+    } else if (phase.contains('Luteal')) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFD08770), Color(0xFFA36D5A)],
+      );
+    } else if (phase.contains('Follicular')) {
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFA3BE8C), Color(0xFF88C0CB)],
+      );
+    }
+    // Default
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF3A6EA8), Color(0xFF2E4A6B)],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -113,14 +148,10 @@ class PCOSDashboard extends StatelessWidget {
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF3A6EA8), Color(0xFF2E4A6B)],
-            ),
+            gradient: _getPhaseGradient(),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF3A6EA8).withValues(alpha: 0.3),
+                color: _getPhaseGradient().colors.first.withValues(alpha: 0.3),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -251,64 +282,6 @@ class PCOSDashboard extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        // ── Insight card ──────────────────────────────────────
-        if (isIrregular == true) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF0F0),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFFFFD0D0),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFE5E5),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.warning_amber_rounded,
-                    color: Color(0xFFB5616A),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Insight Detected',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A2B3C),
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Cycle irregularity detected. This can be common with PCOS; consider tracking your cortisol levels this week.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF7A8FA6),
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
 
         // ── Quick Actions ─────────────────────────────────────
         const Text(
@@ -382,6 +355,7 @@ class PCOSDashboard extends StatelessWidget {
           ],
         ),
 
+
         const SizedBox(height: 30),
       ],
     );
@@ -450,28 +424,25 @@ class PCOSDashboard extends StatelessWidget {
       child: Container(
         height: 90,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              color.withValues(alpha: 0.85),
-              color,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.2),
+            width: 1,
           ),
-          borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 8),
+            Icon(icon, color: color, size: 26),
+            const SizedBox(height: 6),
             Text(
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 12,
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+                color: Color(0xFF3D5166),
+                fontWeight: FontWeight.w500,
                 height: 1.2,
               ),
             ),

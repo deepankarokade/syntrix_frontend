@@ -161,18 +161,65 @@ class PcosPredictor {
     final prob = (outputTensor[0][0]).clamp(0.0, 1.0);
     print('PcosPredictor: model=$modelName, raw_prob=$prob');
 
-    // Rank features by their absolute scaled contribution
+    // ── Directional Feature Importance ──
+    // Determine if the overall prediction leans towards High/Moderate risk or Low risk
+    final isHighRisk = prob >= 0.50;
+
+    // Defines whether a high value of a feature INCREASES (1) or DECREASES (-1) PCOS risk.
+    const Map<String, int> featureDirections = {
+      'Age (yrs)': -1,
+      'BMI': 1,
+      'Cycle(R/I)': 1,
+      'Cycle length(days)': 1,
+      'Weight gain(Y/N)': 1,
+      'Hair growth(Y/N)': 1,
+      'Pimples(Y/N)': 1,
+      'Hair loss(Y/N)': 1,
+      'Skin darkening (Y/N)': 1,
+      'Fast food (Y/N)': 1,
+      'Reg.Exercise(Y/N)': -1,
+      'LH(mIU/mL)': 1,
+      'FSH(mIU/mL)': 1,
+      'LH/FSH Ratio': 1,
+      'AMH(ng/mL)': 1,
+      'PRL(ng/mL)': 1,
+      'PRG(ng/mL)': 1,
+      'TSH (mIU/L)': 1,
+      'RBS(mg/dl)': 1,
+      'Waist:Hip Ratio': 1,
+      'Hb(g/dl)': 0, // Neutral
+    };
+
     final indexed = List.generate(
       featureList.length,
-      (i) => MapEntry(featureList[i], scaledVec[i].abs()),
+      (i) {
+        final feature = featureList[i];
+        final zScore = scaledVec[i];
+        final direction = featureDirections[feature] ?? 1;
+
+        double importance = 0.0;
+        if (direction != 0) {
+          if (isHighRisk) {
+            // Match detrimental anomalies (e.g. high BMI, low exercise)
+            if (zScore * direction > 0) importance = (zScore * direction);
+          } else {
+            // Match protective/healthy behavior (e.g. low BMI, high exercise)
+            if (zScore * direction < 0) importance = -(zScore * direction);
+          }
+        }
+        return MapEntry(feature, importance);
+      },
     )..sort((a, b) => b.value.compareTo(a.value));
+
+    // Filter out features with 0 importance, then take top N
+    final topFeatures = indexed.where((e) => e.value > 0).take(topN).toList();
 
     return PcosResult(
       riskScore:      double.parse(prob.toStringAsFixed(4)),
       riskPercentage: (prob * 100).round(),
       category:       _categorize(prob),
       modelUsed:      modelName,
-      topFeatures:    indexed.take(topN).toList(),
+      topFeatures:    topFeatures,
     );
   }
 
